@@ -1,0 +1,635 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Socket.IO chat</title>
+		<script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+		<script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+		<script type="text/javascript" src="bootstrap/js/bootstrap.min.js"></script>
+		<script type="text/javascript" src="diff.js"></script>
+		<script type="text/javascript" src="dataModel.js"></script>
+		<script type="text/javascript" src="core.js"></script>
+		<link href="bootstrap/css/bootstrap.min.css" rel="stylesheet">
+	</head>
+	
+	<style>
+		body {
+			background: rgb(15,4,87);
+		}
+	
+	.title {
+		margin-top: 7vh;
+		font-size: 24px;
+		font-family:"Courier";
+		font-weight: bold;
+		padding-bottom: none;
+		color:white;
+	}
+
+	#leftBar {
+		width:50%;
+		margin-left:25%;
+		margin-top: 25vh;
+		height: 60vh;
+		background-color: rgb(255, 255, 255);
+		border-radius: 15px;
+		border:3px dotted rgb(51, 133, 51);
+		padding: 6%;
+		font-family: "Courier";
+		font-size: 15px;
+		font-weight: bold;
+		text-align: center;
+	}
+	
+	#main {
+		height: 85vh;
+		
+	}
+	#mainContent {
+		position: fixed;
+		top: 0;
+		left: 0;
+		padding: 0;
+		height: 100px;
+		width: 0px;
+		overflow-y: hidden;
+		outline: none;
+		font-size: 24px;
+		background-color: #fff;
+		nothing: rgb(255, 246, 211);
+		border-radius: 0px;
+		border: none;
+		resize: none;
+	}
+
+	#testArea {
+		background-color:rgb(255, 255, 255);
+		height: 100vh;
+		z-index: -1;
+		font-size: 18px;
+		font-family: "Courier";
+		padding-left: 20px;
+		padding-top: 15px;
+		border: 4px solid rgb(51, 133, 51);
+		border-radius:20px;
+		margin-top:2vh;
+	}
+	
+	
+	
+	#people li{
+		display: inline;
+	}
+	
+	.row {
+		width:100%;
+	}
+	
+	#rightBar {
+		position: fixed;
+		top: 30vh;
+		right: 0;
+		height: 30vh;
+		width: 20%;
+		background-color: rgb(245, 193, 124);
+	}
+	
+	
+	#middleBar {
+		position: fixed;
+		top: 30vh;
+		right: 0;
+		height: 30vh;
+		width: 25%;
+		background-color: rgb(150, 108, 67);
+	}
+	
+	#middleBar *,  #middleBarBack *{
+		position: relative;
+		top: .3vh;
+		padding-right: 15px;
+		font-size: 18px;
+		font-family: Tahoma;
+		color: rgb(255, 204, 153);
+		height: 25%;
+		text-align: right;	
+		border: none;
+	}
+	
+	#middleBarBack {
+		position: fixed;
+		top: 35vh;
+		right: 0;
+		height: 30vh;
+		width: 100%;
+		z-index: -1;
+	}
+	
+	#status{
+		text-align: right;
+		padding-right: 4em;
+		padding-top: 15px;
+		font-size: 18px;
+		font-family: Tahoma;
+		color: rgb(25, 89, 25);
+	}
+	
+	
+	
+		</style>
+	
+	<body>
+		
+		<br/>
+		<div class="row">
+			<div class="col-xs-4">
+				<div id="leftBar">People<br/><br/></div>
+			</div>
+			<div class="col-xs-6">
+				<div class="title" align="center"> Title </div>
+				<div id="main">
+					<div id="testArea" tabindex=-1 contenteditable=true>
+					
+					</div>
+					<textarea id="mainContent"></textarea>
+				</div>
+				<ul id="people">
+					<li> Person1 </li>
+					<li> Person2 </li>
+					<li> Person3 </li>
+					<li> Person4 </li>
+				</ul>
+			</div>
+			<div class="col-xs-2">
+				
+			</div>
+		</div>
+		
+		
+		<div id="middleBar" style="display:none"> 
+			<div id="status">Your status</div>
+			<div id="status">Stuff</div>
+			<div id="status"><a href="/">Stuff</a></div>
+			<div id="status">Stuff</div>
+			
+		</div>
+		<div id="middleBarBack" style = "display:inline">
+			
+		</div>
+		
+		
+		
+		
+	</body>
+
+	<script type="text/javascript">
+
+
+		function get() { 
+			return $('#testArea').html();
+		}
+
+		function getNodes(el) {
+			el = el || $('#testArea')[0];
+			var nl = el.childNodes;
+			var arr = [];
+			for(var i = 0, n; n = nl[i]; ++i) arr.push(n.cloneNode(true));
+			return arr;
+		}
+
+		function condense(element) {
+
+			var condensed = "";
+
+			element = element || $('#testArea')[0];
+
+			$.each(element.childNodes, function(el) {
+				if (this.textContent) {
+					condensed += this.textContent;
+				}
+				else if (this.childNodes.length > 0) {
+					var type = this.nodeName.toLowerCase();
+					condensed += "<" + type + ">" + condense(this) + "</" + type + ">";
+				}
+				else if (this.nodeName && (this.nodeName.toLowerCase() !== 'span')) {
+					condensed += this.outerHTML;
+				}
+				else {
+					// idk
+				}
+			})
+
+			return condensed;
+		}
+
+
+		function getCursor(element) {
+		    var caretOffset = 0;
+		    var doc = element.ownerDocument || element.document;
+		    var win = doc.defaultView || doc.parentWindow;
+		    var sel;
+		    if (typeof win.getSelection != "undefined") {
+		        sel = win.getSelection();
+		        if (sel.rangeCount > 0) {
+		            var range = win.getSelection().getRangeAt(0);
+		            var preCaretRange = range.cloneRange();
+		            preCaretRange.selectNodeContents(element);
+		            preCaretRange.setEnd(range.endContainer, range.endOffset);
+		            caretOffset = preCaretRange.toString().length;
+		        }
+		    } else if ( (sel = doc.selection) && sel.type != "Control") {
+		        var textRange = sel.createRange();
+		        var preCaretTextRange = doc.body.createTextRange();
+		        preCaretTextRange.moveToElementText(element);
+		        preCaretTextRange.setEndPoint("EndToEnd", textRange);
+		        caretOffset = preCaretTextRange.text.length;
+		    }
+		    return caretOffset;
+		}
+
+		function getCursor2() {
+		    if (typeof window.getSelection != "undefined") {
+		        sel = window.getSelection();
+		        if (sel.rangeCount > 0) {
+		            var range = window.getSelection().getRangeAt(0);
+		            return [[range.startContainer, range.startOffset], [range.endContainer, range.endOffset]]
+		        }
+		    }
+
+
+		    return undefined;
+		}
+
+		function length(el) {
+			if (el.length != undefined) { return el.length; }
+			if (el.innerHTML != undefined && el.innerHTML.length != undefined) { return el.innerHTML.length; }
+			return 0;
+		}
+
+		function setCursor2(pos, toFocus) {
+
+			if (pos == undefined) { return; }
+
+			//console.log(JSON.stringify(pos));
+
+			var range = document.createRange();
+			range.setStart(pos[0][0], pos[0][1]);
+			range.setEnd(pos[1][0], pos[1][1]);
+			//range.collapse(true);
+
+			var sel = window.getSelection();
+			sel.removeAllRanges();
+			sel.addRange(range);
+			if (toFocus) {
+				toFocus.focus();
+			}
+
+
+		}
+
+		function setCursor(div, length) {
+
+			children = div.childNodes;
+
+			for (var i = 0; i < children.length; i++) {
+				var textLength = children[i].textContent.length;
+				console.log("text length is " + textLength);
+				length -= textLength;
+				console.log("length is now " + length);
+				console.log("child is " );
+				console.log(children[i]);
+
+				if (length < 0) {
+					var pos = length + textLength;
+
+					if (children[i].childNodes.length == 0) {
+						setCursor2([[children[i], pos], [children[i], pos]]);
+						console.log("cursor set at " );
+						console.log(children[i]);
+						console.log(pos + " returned") ;
+					}
+					else {
+						setCursor(children[i], pos);
+					}
+					return;
+				}
+			}
+			console.log("set cursor is outside range");
+		}
+
+
+		$("#testArea").focusin(function() {
+		  //$("#mainContent").focus();
+		});
+		$("#testArea").focusout(function() {
+		  //$("#testArea").css("background","white");
+		});
+
+		var socket = io();
+
+		var color = "";
+		
+		var timeOut = 100; // ms
+		
+		
+		var old, lastPush;
+		
+		function check() {
+			var el = document.getElementById("testArea");
+			
+			var pos = getCursor2();
+
+			fontify();
+
+			setCursor2(pos, $('#testArea'));
+
+			var val = $('#testArea').html();
+			
+			
+			if (val != old) {
+				update(val);
+				changes_ = changes(old, val);
+
+				for (var i = 0; i < changes_[0].length; i++) {
+					change_ = changes_[0][i];
+
+					console.log("node changed: " + JSON.stringify(change_));
+
+					var node = nodeAt(change_[0])
+					if (node == undefined) continue;
+					//console.log(node[0]);
+					//console.log(node[1]);
+					//console.log((node[0].outerHTML || node[0].innerHTML || node[0].textContent).substring(node[1]));
+					//console.log("color: " + getColor(node[0]));
+
+					if (getColor(node[0]) != color) {
+
+						console.log("node changed: ");
+						console.log(node);
+						check = '';
+
+						el = document.createElement("span");
+
+						var text = node[0].textContent;
+						var pos = node[1];
+
+						node[0].textContent = text.substring(0, pos);
+
+						var font = document.createElement('font');
+						font.color = color;
+						font.innerHTML = text.substring(pos, pos+1)
+
+						var afterText = document.createTextNode(text.substring(pos+1));
+
+						var parent = node[0].parentNode;
+
+						parent.insertBefore(font, node[0].nextSibling);
+						parent.insertBefore(afterText, font.nextSibling);
+
+						console.log("setting cursor at position 1 of ");
+						console.log(font);
+
+						setCursor2([[font, 1], [font, 1]]);
+
+
+					}
+				}
+
+				val = $('#testArea').html();
+				update(val);
+				changes_ = changes(old, val); // real changes
+
+				console.log(JSON.stringify(changes_));
+				old = lastPush = val;
+				socket.emit('inp', JSON.stringify(changes_));
+			}
+			else {
+				setTimeout(check, timeOut);
+			}
+		}
+	
+		function nodeAt(ind, el) {
+			childNodes = $('#testArea')[0].childNodes;
+
+			if (el) childNodes = el.childNodes
+
+			for (var i = 0; i < childNodes.length; i++) {
+
+				var length;
+				var node = childNodes[i];
+
+				if (childNodes[i].outerHTML) { length = node.outerHTML.length; }
+				else { length = node.length; }
+
+				ind -= length;
+				
+				if (ind <= 0) {
+
+
+					ind += length;
+
+					if (node.childNodes && node.childNodes.length > 0) {
+
+						var closeTagLength = node.nodeName.length + 3;
+						var openTagLength = node.outerHTML.length - (closeTagLength + node.innerHTML.length);
+
+						if (ind < openTagLength) {
+							console.log("opening tag  with ind of " + (-ind));
+							return [node, -ind];
+						}
+						if (ind > openTagLength + node.innerHTML.length) {
+							console.log("end tag");
+							return [node, -ind];
+						}
+
+						//console.log("nodeAt returning ");
+						//console.log(ind + length - (length - node.innerHTML.length));
+						//console.log(node);
+						console.log("recursing with openTagLength: " + openTagLength);
+						console.log(node);
+						return nodeAt(ind - openTagLength, node);
+					}
+
+					console.log("found text");
+					return [childNodes[i], ind];
+				}
+			}
+			console.log('"DSF"SDF"DS"FDS"F');
+		}
+
+		function getColor(node) {
+			while (true) {
+				if (node && node.nodeName && node.nodeName.toLowerCase() === "font") {
+					return node.color;
+				}
+				if (node == $('#testArea')[0] || node==undefined) {
+					return undefined;
+				}
+				node = node.parentNode;
+				
+			}
+		}
+
+
+		function fontify(changes) {
+			var area = $('#testArea')[0];
+			var nodes = area.childNodes;
+
+			for (var i = 0; i < nodes.length; i++) {
+				var node = nodes[i];
+				if (!node.nodeName || node.nodeName.toLowerCase() !== "font") {
+					var font = document.createElement("font");
+					font.color = color;
+					font.appendChild(node);
+
+					area.insertBefore(font, area.childNodes[i]);
+					//area.removeChild(area.childNodes[i]);
+				}
+			}
+		}
+		
+		socket.on('resp', function(msg){
+				if (lastPush != msg) {
+					$('#testArea').html(msg);
+					update(msg);
+					alert("got " + msg + " and it's different than "  + lastPush);
+					console.log(lastPush);
+					console.log(msg);
+				}
+				  
+				old = msg;
+				update(msg);
+				setTimeout(check, timeOut);
+		});
+
+		socket.on('update', function(msg) {
+				
+				var pos = getCursor($('#testArea')[0]);
+
+				console.log("pos is " + pos);
+
+
+				$('#testArea').html(msg);
+				old = msg;
+				update(msg);
+				
+
+
+				setCursor($('#testArea')[0], pos);
+
+				console.log("updating with: " + msg);
+				
+				// todo check for changes here, otherwise they'll be forgotten,
+				// because:   changes_ = changes(old, val);
+				// if there are changes, they'll have to merged
+		});
+		
+		socket.on('init', function(msg) {
+				msg = JSON.parse(msg);
+				old = msg['val'];
+				color = msg['color'];
+				setTimeout(check, timeOut);
+				$('#testArea').html(msg['val']);
+				oldNodes = getNodes();
+				update(msg['val']);
+				console.log("initing with " + msg['val']);
+				
+		});
+		
+		colors = [[255, 255, 255], [133, 133, 230], [163, 255, 133], [255, 133, 133]];
+
+		function close() {
+			
+		}
+		
+
+		function update(updated) {
+			//return;
+
+			updated = updated || $('#testArea').html();
+
+			newValue = updated;
+			
+			$.getJSON('/test', function (json) {
+					  
+				//json is a dictionary with keys as users, and values of arrays of that users ranges
+				var html = [];
+			 	var keys = Object.keys(json);
+			  	for (var i = 0; i < keys.length; i++) {
+				
+					  
+					for (var r = 0; r < json[keys[i]].length; r++) {
+
+						var range = json[keys[i]][r]; //  a range
+					  
+						var toAdd = [range[0], range[0] + range[1], newValue.slice(range[0], range[0] + range[1]), colors[i]];
+					  
+					 	var added = false;
+						for (var h = 0; h < html.length; h++) {
+							if (range[0] < html[h][1]) { // if this range is greater that the one in html
+								html.splice(h, 0, toAdd);
+								added = true;
+								break;
+							}
+					  	}
+					  
+					  	if (!added) {
+							html.push(toAdd);
+					  	} 
+				 	}
+			  	}
+					  
+					  
+			  	//console.log(JSON.stringify(html));
+			  	var newHTML = "";
+					  
+				var current = 0;
+				for (var h = 0; h < html.length; h++) {
+					  var thing = html[h];
+					  
+					  if (current != thing[0]) {
+						  console.log("continuity test failed");
+						  alert("continuity test failed");
+						  break;
+						
+					  }
+
+					  var element = document.createTextNode(thing[2]);
+
+					  var div = document.createElement("div");
+					  div.appendChild(element);
+					  div.style.backgroundColor = 'rgb(' + thing[3].join(",") + ")";
+
+					  newHTML += div.outerHTML;
+					  current = thing[1];
+					  
+			  	}
+
+				$('#leftBar').html(newHTML);
+				
+			});
+		}
+		
+		
+		var i = 1, options = ["rgb(121, 101, 141)", "rgb(178, 178, 178)"];
+		
+		$.each($('#middleBar').children(), function(o, element) {
+			   element.style.backgroundColor = options[i];
+			   i++;
+			   i = i % options.length;
+			   
+			   });
+			   
+		$('#middleBarBack').html($('#middleBar').html());
+		
+		function reportSelection() {
+			
+			//console.log(sel.start);
+			//console.log(sel.end);
+		}
+		$(document).on("selectionchange", reportSelection);
+		$('#mainContent').on("keyup input mouseup textInput", reportSelection);
+
+		</script>
+	
+	
+</html>

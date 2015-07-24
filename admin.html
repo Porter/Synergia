@@ -1,0 +1,143 @@
+
+<head>
+	<script type="text/javascript" src="/socket.io-1.2.0.js"></script>
+	<script type="text/javascript" src="/jquery-1.11.1.js"></script>
+	<link href="/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+	<style>
+		.cool {background-color: white; padding: 10px; border-radius: 10px; width: 80%; margin-left:10%;}
+
+
+		#sidebar > div {
+			position: fixed;
+			background-color: white;
+			height: 100%;
+			width: 8%;
+		}
+
+		#sidebar > div > ul { padding-top: 40px; }
+		#sidebar > div > ul > li { padding-top: 10px; }
+	</style>
+</head>
+
+
+<body style="background-color: lightgrey;">
+
+
+<div class="row">
+	<div id="sidebar" class="col-xs-1">
+		<div>
+			<ul>
+				<li><a href="javascript:showPage('Testing');">Testing</a></li>
+				<li><a href="javascript:showPage('Errors');">Errors</a></li>
+			</ul>
+		</div>
+
+	</div>
+	<div id="notSidebar" class="col-xs-11">
+		<div id="Testing">
+			<center><h2>Testing</h2></center>
+			<hr/>
+
+			<div id="testing"></div>
+
+			<br><br><hr/>
+		</div>
+
+		<div id="Errors">
+			<center><h2>Errors</h2></center>
+			<hr/>
+
+			<div id="errors">
+
+				<a href="javascript:reloadErrors()">reload</a>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+
+</body>
+
+
+
+<script type="text/javascript">
+	
+	var tests = [['', [[["ad",[],0,"",null,{}]],[[0,"f"]],"<div id=\"testArea\" class=\"main\" tabindex=\"-1\" contenteditable=\"true\">1</div>"]]];
+
+	
+
+	for (var i = 0; i < tests.length; i++) {
+
+		var testingContainer = document.createElement("div");
+		testingContainer.innerHTML = '<div id="test' + i + '" contenteditable="true" style="background-color: white; padding: 10px; border-radius: 10px; width: 80%; margin-left:10%; height:150px;">' + tests[i][0] + "</div><br/>";
+
+		testingContainer.innerHTML += '<button style="margin-left:10%;" onclick="test(' + i + ')">test</button><br/><br/>';
+
+		testingContainer.innerHTML += '<div id="ans' + i + '" contenteditable="true" style="background-color: white; padding: 10px; border-radius: 10px; width: 80%; margin-left:10%; height:150px;"></div><br/>';
+
+		$('#testing')[0].appendChild(testingContainer);
+	}
+
+	function test(i) {
+		didIt = false;
+		var socket = io();
+		socket.emit('set', tests[i][0]);
+
+		socket.on('resp', function (msg) {
+			console.log("got resp: " + msg);
+			if (didIt) {
+				$('#ans'+i).html(msg);
+				return;
+			}
+			socket.emit('inp', JSON.stringify(tests[i][1]));
+			didIt = true;
+		});
+	}
+
+
+	function reloadErrors() {
+		$.getJSON("/errors?keys=true", function(json) {
+			console.log(json);
+			for (var i = 0; i < json.length; i++) {
+				var errorContainer = document.createElement("div");
+				errorContainer.className = "cool";
+				errorContainer.id = "error" + i;
+
+				for (key in json[i]) {
+					if (key == "change") json[i]['change'] = JSON.stringify(json[i]['change']);
+					var div = document.createElement("div");
+
+
+					var spaces = "";
+					console.log(key, key.length);
+					for (var n = 0; n < 10 - key.length; n++) spaces += "_";
+
+					div.appendChild(document.createTextNode(json[i][key]));
+					div.textContent = key + ": " + spaces + div.textContent;
+					errorContainer.appendChild(div);
+				}
+
+				$('#errors')[0].appendChild(errorContainer);
+
+				$('#errors')[0].appendChild(document.createElement("hr"));
+			}
+		});
+	}
+
+	function showPage(page) {
+		var root = $('#notSidebar');
+
+		var children = root.children();
+		for (var i = 0; i < children.length; i++) {
+			var child = children[i];
+
+			if (child.id == page) $(child).show();
+			else $(child).hide();
+		}
+
+		if (page == 'Errors') reloadErrors();
+	}
+	
+</script>

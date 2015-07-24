@@ -1,0 +1,107 @@
+0 info it worked if it ends with ok
+1 verbose cli [ 'node', '/usr/local/bin/npm', 'install', 'colors' ]
+2 info using npm@1.4.28
+3 info using node@v0.10.33
+4 warn package.json Connectivity@0.0.1 No repository field.
+5 warn package.json Connectivity@0.0.1 No README data
+6 warn package.json iojs@1.0.0 No repository field.
+7 warn package.json iojs@1.0.0 No README data
+8 verbose readDependencies using package.json deps
+9 verbose cache add [ 'colors', null ]
+10 verbose cache add name=undefined spec="colors" args=["colors",null]
+11 verbose parsed url { protocol: null,
+11 verbose parsed url   slashes: null,
+11 verbose parsed url   auth: null,
+11 verbose parsed url   host: null,
+11 verbose parsed url   port: null,
+11 verbose parsed url   hostname: null,
+11 verbose parsed url   hash: null,
+11 verbose parsed url   search: null,
+11 verbose parsed url   query: null,
+11 verbose parsed url   pathname: 'colors',
+11 verbose parsed url   path: 'colors',
+11 verbose parsed url   href: 'colors' }
+12 silly lockFile f8bd6967-colors colors
+13 verbose lock colors /Users/porter/.npm/f8bd6967-colors.lock
+14 silly lockFile f8bd6967-colors colors
+15 silly lockFile f8bd6967-colors colors
+16 verbose addNamed [ 'colors', '' ]
+17 verbose addNamed [ null, '*' ]
+18 silly lockFile 647b9942-colors colors@
+19 verbose lock colors@ /Users/porter/.npm/647b9942-colors.lock
+20 silly addNameRange { name: 'colors', range: '*', hasData: false }
+21 verbose request where is /colors
+22 verbose request registry https://registry.npmjs.org/
+23 verbose request id bf59ee6f8ca2ff8a
+24 verbose url raw /colors
+25 verbose url resolving [ 'https://registry.npmjs.org/', './colors' ]
+26 verbose url resolved https://registry.npmjs.org/colors
+27 verbose request where is https://registry.npmjs.org/colors
+28 info trying registry request attempt 1 at 20:38:17
+29 verbose etag "68V8QONSLG1OMQD7F40SG66UN"
+30 http GET https://registry.npmjs.org/colors
+31 http 304 https://registry.npmjs.org/colors
+32 silly registry.get cb [ 304,
+32 silly registry.get   { date: 'Fri, 17 Jul 2015 03:38:18 GMT',
+32 silly registry.get     via: '1.1 varnish',
+32 silly registry.get     'cache-control': 'max-age=60',
+32 silly registry.get     etag: '"68V8QONSLG1OMQD7F40SG66UN"',
+32 silly registry.get     age: '25',
+32 silly registry.get     connection: 'keep-alive',
+32 silly registry.get     'x-served-by': 'cache-sjc3128-SJC',
+32 silly registry.get     'x-cache': 'HIT',
+32 silly registry.get     'x-cache-hits': '18',
+32 silly registry.get     'x-timer': 'S1437104298.217344,VS0,VE0',
+32 silly registry.get     vary: 'Accept' } ]
+33 verbose etag https://registry.npmjs.org/colors from cache
+34 silly addNameRange number 2 { name: 'colors', range: '*', hasData: true }
+35 silly addNameRange versions [ 'colors',
+35 silly addNameRange   [ '0.3.0',
+35 silly addNameRange     '0.5.0',
+35 silly addNameRange     '0.5.1',
+35 silly addNameRange     '0.6.0',
+35 silly addNameRange     '0.6.0-1',
+35 silly addNameRange     '0.6.1',
+35 silly addNameRange     '0.6.2',
+35 silly addNameRange     '1.0.0',
+35 silly addNameRange     '1.0.1',
+35 silly addNameRange     '1.0.2',
+35 silly addNameRange     '1.0.3',
+35 silly addNameRange     '1.1.0',
+35 silly addNameRange     '1.1.1',
+35 silly addNameRange     '1.1.2' ] ]
+36 verbose addNamed [ 'colors', '1.1.2' ]
+37 verbose addNamed [ '1.1.2', '1.1.2' ]
+38 silly lockFile 12b5d644-colors-1-1-2 colors@1.1.2
+39 verbose lock colors@1.1.2 /Users/porter/.npm/12b5d644-colors-1-1-2.lock
+40 silly lockFile a3fd4c0b-pmjs-org-colors-colors-1-1-2-tgz https://registry.npmjs.org/colors/-/colors-1.1.2.tgz
+41 verbose lock https://registry.npmjs.org/colors/-/colors-1.1.2.tgz /Users/porter/.npm/a3fd4c0b-pmjs-org-colors-colors-1-1-2-tgz.lock
+42 verbose addRemoteTarball [ 'https://registry.npmjs.org/colors/-/colors-1.1.2.tgz',
+42 verbose addRemoteTarball   '168a4701756b6a7f51a12ce0c97bfa28c084ed63' ]
+43 info retry fetch attempt 1 at 20:38:18
+44 verbose fetch to= /var/folders/_t/jb0qjh290l59tt1l0smpj5j00000gn/T/npm-53199-qxcy8x29/registry.npmjs.org/colors/-/colors-1.1.2.tgz
+45 http GET https://registry.npmjs.org/colors/-/colors-1.1.2.tgz
+46 http 200 https://registry.npmjs.org/colors/-/colors-1.1.2.tgz
+47 silly lockFile a3fd4c0b-pmjs-org-colors-colors-1-1-2-tgz https://registry.npmjs.org/colors/-/colors-1.1.2.tgz
+48 silly lockFile a3fd4c0b-pmjs-org-colors-colors-1-1-2-tgz https://registry.npmjs.org/colors/-/colors-1.1.2.tgz
+49 silly lockFile 12b5d644-colors-1-1-2 colors@1.1.2
+50 silly lockFile 12b5d644-colors-1-1-2 colors@1.1.2
+51 silly lockFile 647b9942-colors colors@
+52 silly lockFile 647b9942-colors colors@
+53 error Error: EACCES, mkdir '/Users/porter/.npm/colors/1.1.2'
+53 error  { [Error: EACCES, mkdir '/Users/porter/.npm/colors/1.1.2']
+53 error   errno: 3,
+53 error   code: 'EACCES',
+53 error   path: '/Users/porter/.npm/colors/1.1.2',
+53 error   parent: 'Connectivity' }
+54 error Please try running this command again as root/Administrator.
+55 error System Darwin 13.4.0
+56 error command "node" "/usr/local/bin/npm" "install" "colors"
+57 error cwd /Users/porter/dev/garbage/node
+58 error node -v v0.10.33
+59 error npm -v 1.4.28
+60 error path /Users/porter/.npm/colors/1.1.2
+61 error code EACCES
+62 error errno 3
+63 error stack Error: EACCES, mkdir '/Users/porter/.npm/colors/1.1.2'
+64 verbose exit [ 3, true ]

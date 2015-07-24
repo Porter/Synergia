@@ -1,0 +1,793 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Connectivity</title>
+		<script type="text/javascript" src="/socket.io-1.2.0.js"></script>
+		<script type="text/javascript" src="/jquery-1.11.1.js"></script>
+		<script type="text/javascript" src="/bootstrap/js/bootstrap.min.js"></script>
+		<script type="text/javascript" src="/diff.js"></script>
+		<script type="text/javascript" src="/change.js"></script>
+		
+		<link href="/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+	</head>
+	
+	<style>
+		body {
+			background: rgb(202, 234, 135);
+		}
+	
+	#leftBar {
+		width:50%;
+		margin-left:25%;
+		margin-top: 15vh;
+		height: 60vh;
+		background-color: rgb(255, 246, 211);
+		border-radius: 25px;
+		padding: 2%;
+	}
+	
+	#main {
+		height: 85vh;
+		
+	}
+	#mainContent {
+		position: fixed;
+		top: 0;
+		left: 0;
+		padding: 0;
+		height: 100px;
+		width: 0px;
+		overflow-y: hidden;
+		outline: none;
+		font-size: 24px;
+		background-color: #fff;
+		nothing: rgb(255, 246, 211);
+		border-radius: 0px;
+		border: none;
+		resize: none;
+	}
+
+	#testArea {
+		background-color:rgb(255, 255, 255);
+		height: 100vh;
+		z-index: -1;
+		font-size: 26px;
+		font-family: "Courier";
+		padding-left: 20px;
+		padding-top: 15px;
+	}
+	
+	.title {
+		text-align: center;
+		font-size: 24px;
+		padding-bottom: 10px;
+	}
+	
+	#people li{
+		display: inline;
+	}
+	
+	.row {
+		width:100%;
+	}
+	
+	#rightBar {
+		position: fixed;
+		top: 30vh;
+		right: 0;
+		height: 30vh;
+		width: 20%;
+		background-color: rgb(245, 193, 124);
+	}
+	
+	
+	#middleBar {
+		position: fixed;
+		top: 30vh;
+		right: 0;
+		height: 30vh;
+		width: 20%;
+		background-color: rgb(245, 193, 124);
+	}
+	
+	#middleBar *,  #middleBarBack *{
+		position: relative;
+		top: .75vh;
+		padding-right: 5%;
+		font-size: 16px;
+		margin-bottom: .75vh;
+		margin-top: .75vh;
+		padding-bottom: .75vh;
+		padding-top: .75vh;
+		height: 25%;
+		text-align: right;
+		
+	}
+	
+	#middleBarBack {
+		position: fixed;
+		top: 30vh;
+		right: 0;
+		height: 30vh;
+		width: 100%;
+		background-color: rgb(245, 193, 124);
+		z-index: -1;
+	}
+	
+	#middleBarBack * {
+		color: rgba(0, 0, 0, 0);
+	}
+	
+	.kix-cursor {
+	  cursor: text;
+	  position: fixed;
+	  z-index: 24;
+	}
+	
+
+	.kix-cursor-caret {
+	  position: fixed;
+	  width: 0px;
+	  border-left: 2px solid;
+	  font-size: 0;
+	}
+
+	.kix-cursor-top {
+	  position: absolute;
+	  width: 6px;
+	  left: -2px;
+	  top: -2px;
+	  height: 6px;
+	  font-size: 0;
+	}
+	
+
+	.kix-cursor-name {
+	  position: absolute;
+	  font-size: 10px;
+	  color: #fff;
+	  top: -14px;
+	  left: -2px;
+	  padding: 2px;
+	  white-space: nowrap;
+	}
+
+	#main {
+		position: relative;
+	}
+
+	.wrapword{
+		white-space: -moz-pre-wrap !important;  /* Mozilla, since 1999 */
+		white-space: -pre-wrap;      /* Opera 4-6 */
+		white-space: -o-pre-wrap;    /* Opera 7 */
+		white-space: pre-wrap;       /* css-3 */
+		word-wrap: break-word;       /* Internet Explorer 5.5+ */
+		white-space: -webkit-pre-wrap; /* Newer versions of Chrome/Safari*/
+		word-break: break-all;
+		white-space: normal;
+
+		}
+
+		</style>
+	
+	<body>
+
+		<div id="status" style="position: fixed; width: 50px; height: 50px; right: 0px; top 50px; background-color:green;"></div>
+		
+		<br/>
+		<div class="row">
+			<div class="col-xs-4">
+				<div id="leftBar">
+					<ul id="leftBarUl"></ul>
+				</div>
+			</div>
+			<div class="col-xs-6">
+				<div class="title" id="title"></div>
+				<div id="main">
+					<div id="mainArea">
+						<div id="testArea" class="main" tabindex=-1 contenteditable=true></div>
+					</div>
+					<div id="cursors" ></div>
+					<textarea id="mainContent"></textarea>
+				</div>
+
+				<div id="cursors-template-container" style="display: none">
+					<div class="kix-cursor docs-ui-unprintable" style="opacity: 1; left: 0px; top: 0px;"><div class="kix-cursor-caret" style="border-color: rgb(15, 157, 88); height: 22.4px;"></div><div class="kix-cursor-top" style="opacity: 1; background-color: rgb(15, 157, 88);"></div><div class="kix-cursor-name" style="opacity: 0; display: none; background-color: rgb(15, 157, 88);"></div></div>
+				</div>
+
+				<ul id="people">
+					<li> person1 </li>
+					<li> person2 </li>
+					<li> person3 </li>
+					<li> person4 </li>
+				</ul>
+			</div>
+			<div class="col-xs-2">
+				
+			</div>
+		</div>
+		
+		
+		<div id="middleBar" style="display:none">
+			<div id="status">Your status</div>
+			<div>Stuff</div>
+			<div><a href="/">Stuff</a></div>
+			<div>Stuff</div>
+			
+		</div>
+		<div id="middleBarBack" style = "display:none">
+			
+		</div>
+		
+		
+		
+		
+	</body>
+
+	<script type="text/javascript">
+
+		window.onerror = function(msg, url, line, col, error) {
+			var extra = !col ? '' : '\ncolumn: ' + col;
+		   extra += !error ? '' : '\nerror: ' + error;
+
+		   // You can view the information in an alert to see things working like this:
+		   alert("Error: " + msg + "\nurl: " + url + "\nline: " + line + extra);
+		   console.log(error.stack);
+
+		   var toSend = {
+		   	message:msg,
+		   	my_msg:msg,
+		   	stack:error.stack,
+		   	line: line
+		   };
+
+		   $.post("/reportError", {error:toSend}, function (resp) {
+
+		   });
+
+		   $('#status').css('background-color', 'red');
+
+		   var suppressErrorAlert = true;
+		   // If you return true, then error alerts (like in older versions of 
+		   // Internet Explorer) will be suppressed.
+		   return suppressErrorAlert;
+		};
+
+
+		function getQueryParams() {
+			qs = document.location.search;
+			qs = qs.split('+').join(' ');
+			
+			var params = {},
+			tokens,
+			re = /[?&]?([^=]+)=([^&]*)/g;
+			
+			while (tokens = re.exec(qs)) {
+				params[decodeURIComponent(tokens[1])] = decodeURIComponent(tokens[2]);
+			}
+			
+			return params;
+		}
+
+		var title = getQueryParams()['title'];
+		if (title) $('#title').html(title);
+
+		function arrEquals(arr1, arr2) {
+			if (!arr1 || !arr2) return arr1 == arr2;
+			if (arr1.length != arr2.length) return false;
+
+			for (var i = 0; i < arr1.length; i++) {
+				if (isArray(arr1[i]) || isArray(arr2[i])) {
+					if (isArray(arr1[i]) != isArray(arr2[i])) return false;
+
+					if (!arrEquals(arr1[i], arr2[i])) return false;
+				}
+				else {
+					if (arr1[i] != arr2[i]) return false;
+				}
+			}
+
+			return true;
+		}
+
+		function getCursor3() {
+			var sel = window.getSelection();
+	        if (sel.rangeCount > 0) {
+	            var range = window.getSelection().getRangeAt(0);
+	            var preCaretRange = range.cloneRange();
+	            preCaretRange.selectNodeContents($('#testArea')[0]);
+	            preCaretRange.setEnd(range.startContainer, range.startOffset);
+	            
+	            var r = [];
+	            var start = range.startOffset, startContainer = range.startContainer;
+
+	            for (var i = 0; i < 2; i++) {
+		            var len = preCaretRange.toString().length;
+		            var info = 0;
+
+		            if (start == 0 || startContainer.nodeName.toLowerCase() != "#text") {
+		            	info = 1;
+
+		            	var node = previousNode(startContainer);
+		            	while (node.textContent.length == 0) {
+		            		node = previousNode(node);
+		            		info++;
+		            	}
+		            }
+
+		            r.push([len, info]);
+
+
+		            preCaretRange = range.cloneRange();
+		            preCaretRange.selectNodeContents($('#testArea')[0]);
+		            preCaretRange.setEnd(range.endContainer, range.endOffset);
+		            start = range.endOffset;
+		            startContainer = range.endContainer;
+		        }
+
+	            return r;
+	        }
+		}
+
+		function nodeAt(pos, node) {
+			var len = pos;
+
+			var children = $('#testArea')[0].childNodes;
+			if (node) children = node.childNodes;
+
+			for (var i = 0; i < children.length; i++) {
+				var child = children[i];
+
+				var textLength = child.textContent.length;
+
+				len -= textLength;
+
+				if (len <= 0) {
+					len += textLength;
+					
+					if (child.nodeName.toLowerCase() == "#text") return [child, len];
+					return nodeAt(len, child);
+
+				}
+			}
+		}
+
+		function getCursor() {
+			var sel = window.getSelection();
+	        if (sel.rangeCount > 0) {
+	            var range = window.getSelection().getRangeAt(0);
+	            return range;
+	        }
+		}
+
+		function getRange(pos) {
+
+			var n = nodeAt(pos[0]);
+
+			if (!n) return n;
+
+			if (n[1] != 0) {
+				for (var i = 0; i < pos[1]; i++) {
+					n[0] = nextNode(n[0]);
+					n[1] = 0;
+				}
+			}
+
+			var nodeName = n[0].nodeName.toLowerCase();
+			while (nodeName != "#text" && n[0].childNodes.length > 0) {
+				n[0] = n[0].childNodes[0];
+			 }
+
+			 if (n[0].nodeName.toLowerCase() == "br") n[0] = n[0].parentNode; // can't have the cursor in a <br>
+
+			return n;
+		}
+
+		function setCursor3(pos) {
+			if (!pos) return;
+			
+			var start = getRange(pos[0]);
+			var end = getRange(pos[1]);
+
+			if (pos[1][0] >= pos[0][0]) {
+				if (pos[1][0] > pos[0][0] || pos[1][1] > pos[0][1]) {
+					var t = start;
+					start = end;
+					end = t;
+				}
+			}
+			
+			if (start && end) {
+				var range = document.createRange();
+				range.setStart(start[0], start[1]);
+				range.setEnd(end[0], end[1]);
+				var sel = window.getSelection();
+				sel.removeAllRanges();
+				sel.addRange(range);
+			}
+
+		}
+
+		function test() { setCursor3(getCursor3()); }
+
+		function length(el) {
+			if (el.length != undefined) { return el.length; }
+			if (el.innerHTML != undefined && el.innerHTML.length != undefined) { return el.innerHTML.length; }
+			return 0;
+		}
+
+		var socket = io();
+
+		var color = "";
+		
+		var timeOut = 100; // ms
+		
+		
+		var oldNodes, lastPush, lastStructure, preForm, from, oldCursor = [], userLookup, undefinedUsers = [];
+		
+		function check() {
+			var el = document.getElementById("testArea");
+			el.normalize();
+
+			var val = $('#testArea').html();
+			
+			var cursor = getCursor3();
+			var cursorChanged = false;
+
+			form2(el);
+
+			if (!arrEquals(oldCursor, cursor)) {
+				cursorChanged = true;
+				oldCursor = cursor;
+
+			}
+
+			var element = $('#testArea')[0];
+			var coordinates = [0, 0];//getCaretCoordinates(element, element.selectionEnd);
+
+
+			if (val != oldNodes.innerHTML) {
+				console.log("old", oldNodes.innerHTML);
+				console.log("new", val);
+
+				changes_ = getNodeChanges(oldNodes, el);
+
+				colorize($('#testArea')[0], changes_[1], color);
+
+				form($('#testArea')[0]);
+
+
+
+
+				from = oldNodes;
+				console.log(JSON.stringify(changes_));
+				old = $('#testArea')[0].textContent;
+				preForm = getNode();
+				form($('#testArea')[0]);
+
+				oldNodes = getNode();
+				lastPush = getNode();
+				lastStructure = nodeTree(oldNodes, true, false);
+
+				lastChanges = changes_;
+				
+				if (cursorChanged) {
+					socket.emit('inp_cur', JSON.stringify([ JSON.stringify(changes_), cursor]));
+				}
+				else {
+					socket.emit('inp', JSON.stringify(changes_));
+				}
+				$('#status')[0].style.backgroundColor = "red";
+			}
+			else {
+
+				if (cursorChanged) {
+					socket.emit('cur', JSON.stringify(cursor));
+				}
+
+				setTimeout(check, timeOut);
+			}
+
+			var newCursor = getCursor3();
+			
+
+			if (JSON.stringify(newCursor) != JSON.stringify(cursor)) {
+				setCursor3(cursor);
+			}
+			//setCursor3(cursor);
+
+
+		}
+		
+		socket.on('connect', function(s) {
+			documentId = getQueryParams()['doc'];
+			socket.emit('init', documentId);
+		});
+
+		socket.on('resp', function(msg){
+
+			$('#status')[0].style.backgroundColor = "green";
+			msg = JSON.parse(msg);
+
+			if (structureLength(createNodeTree(msg[0])) != msg[1].length) {
+				console.log(msg[0] + " has length of " + structureLength(createNodeTree(msg[0])) + " not " + msg[1].length);
+				alert("LengthMismatch");
+			}
+
+			if ( !nodeTreesAreEqual(createNodeTree(msg[0]), lastStructure)  || msg[1] != old) {
+
+				var pos = getCursor3();
+
+				var got = document.createElement('div');
+				got.innerHTML = msg;
+				got = got.childNodes[0].innerHTML;
+
+				socket.emit('clientError', JSON.stringify({from:from.innerHTML, to:preForm.innerHTML, afterForm:lastPush.innerHTML, got:got, change:lastChanges}));
+
+				$('#testArea')[0].outerHTML = msg[0];
+				setText($('#testArea')[0], msg[0], msg[1]);
+
+				console.log("from server:");
+				console.log(msg[0]);
+				console.log(msg[1]);
+				console.log("from us");
+				console.log(lastStructure.outerHTML);
+				console.log(old);
+
+				alert("got " + msg + " and it's different than "  + lastPush.innerHTML);
+				setCursor3(pos);
+
+
+			}
+			  
+			old = msg[1];
+			setTimeout(check, timeOut);
+		});
+
+		socket.on('update', function(msg) {
+				
+				msg = JSON.parse(msg);
+
+				var pos = getCursor3();
+
+				$('#testArea')[0].outerHTML = msg[0];
+				setText($('#testArea')[0], msg[0], msg[1]);
+
+				old = msg[1];
+				
+				setCursor3(pos);
+
+				oldNodes = getNode();
+				lastStructure = nodeTree(oldNodes, true, false);
+				
+				// todo check for changes here, otherwise they'll be forgotten,
+				// because:   changes_ = changes(old, val);
+				// if there are changes, they'll have to merged
+		});
+		
+		socket.on('init', function(msg) {
+			console.log(msg);
+			msg = JSON.parse(msg);
+			console.log("initing with " + msg['text']);
+			console.log("initing with " + msg['struct']);
+
+			userLookup = msg['userLookup'];
+			
+
+
+			var text = msg['text'];
+			var struct = createNodeTree(msg['struct']);
+			users = msg['currentUsers'];
+
+			console.log("struct");
+			console.log(struct);
+
+			$('#testArea')[0].outerHTML = struct.outerHTML;
+			setText($('#testArea')[0], struct, text);
+
+			old = msg['text'];
+			color = msg['color'];
+			setTimeout(check, timeOut);
+			
+			oldNodes = getNode();
+			lastPush = getNode();
+			lastStructure = nodeTree(oldNodes, true, false);
+
+			$('#title').html(msg['title']);
+
+			showUsers(users);
+		});
+
+		socket.on('users', function(msg) {
+			msg = JSON.parse(msg);
+
+			if (msg['added']) users[msg['added']] = msg['color'];
+			if (msg['removed']) {
+				delete users[msg['removed']];
+
+				var cursor = $('#cursor-' + msg['removed']);
+				if (cursor.length > 0) {
+					$('#cursors')[0].removeChild(cursor[0]);
+				}
+			}
+
+			showUsers(users);
+		});
+
+		socket.on('NewUserJoined', function (msg) {
+			var key = Object.keys(msg)[0];
+
+			userLookup[key] = msg[key];
+		});
+
+		function nextNode(node, stopAt) {
+			if (node.nextSibling != undefined) { return node.nextSibling; }
+			
+			node = node.parentNode;
+			if (node == stopAt) return;
+			
+			return nextNode(node);
+		}
+
+		socket.on('cur', function (msg) {
+			if (!userLookup) return;
+
+			var userRange = getCursor3();
+
+			var key = Object.keys(msg)[0];
+
+			var cursorColor = users[key];
+
+			var cursor = document.getElementById('cursor-' + key);
+
+			if (!cursor) {
+				cursor = $('#cursors-template-container').clone().children()[0];
+				cursor.id = "cursor-" + key;
+
+				cursor.childNodes[0].style.borderColor = cursorColor;
+				cursor.childNodes[1].style.backgroundColor = cursorColor;
+				cursor.childNodes[2].style.backgroundColor = cursorColor;
+				cursor.childNodes[2].innerHTML = userLookup[key]['user'] || userLookup[key]['displayName'];
+
+				$(cursor).hover(
+					function() {
+						this.childNodes[2].style.opacity = 1;
+						this.childNodes[2].style.display = "";
+						
+						this.childNodes[1].style.opacity = 0;
+						this.childNodes[1].style.display = "none";
+						
+					},
+
+					function () {
+						this.childNodes[1].style.opacity = 1;
+						this.childNodes[1].style.display = "";
+						
+						this.childNodes[2].style.opacity = 0;
+						this.childNodes[2].style.display = "none";
+					}
+				)
+
+				$('#cursors')[0].appendChild(cursor);
+			}
+
+			var left = 20, top = 15, height = 26;
+
+			var offset = height*.1;
+
+			top += offset;
+			height -= offset;
+
+			left += msg[key][0]*15;
+
+			cursor.style.left = left + "px";
+			cursor.style.top  = top + "px";
+			cursor.childNodes[0].style.height  = height + "px";
+
+			var range = document.createRange();
+			var node = getRange(msg[key][0]);
+			
+
+			if (node) {
+
+				range.setStart(node[0], node[1]);
+				range.setEnd(node[0], node[1]);
+
+				var span = document.createElement("span");
+				range.insertNode(span);
+
+				var rect = span.getBoundingClientRect();
+
+				cursor.style.left = rect.left + "px";
+				cursor.style.top  = rect.top + "px";
+				cursor.childNodes[0].style.height  = rect.height + "px";
+
+				span.parentNode.removeChild(span);
+			}
+
+			userRange = getCursor3();
+		});
+		
+		colors = [[255, 255, 255], [255, 0, 0], [0, 255, 0], [0, 0, 255]];
+
+		
+		function showUsers(users) {
+			var ul = $('#leftBarUl')[0];
+			ul.innerHTML = "";
+
+			var keys = Object.keys(users);
+			for (var i = 0; i < keys.length; i++) {
+				var user = keys[i];
+				var color = users[keys[i]];
+
+				var li = document.createElement('li');
+
+				var font = document.createElement('font');
+				font.color = color;
+
+				var userInfo = userLookup[user];
+
+				if (!userInfo) {
+					undefinedUsers.push(user);
+					continue;
+				}
+
+				font.innerHTML = userInfo['user'] || userInfo['displayName'];
+
+				li.appendChild(font);
+
+				ul.appendChild(li);
+			}
+		}
+
+		function removeNodesWithClass(node, className) {
+			var children = node.childNodes;
+
+			if (!children) return;
+
+			for (var i = 0; i < children.length; i++) {
+				var child = children[i];
+
+				if (child.nodeName.toLowerCase() == "#text") continue;
+
+				var buffered = ' ' + child.className + ' ';
+				if (buffered.indexOf(className) >= 0) {
+					node.removeChild(child);
+					i--;
+				}
+				else {
+					removeNodesWithClass(child, className);
+				}
+			}
+		}
+
+		function getNode() {
+			var ta = $('#testArea');
+			var node = ta[0].cloneNode();
+
+			node.innerHTML = ta.html();
+
+			return node;
+		}
+
+		function rename(name) {
+			socket.emit('rename', name);
+			$('#title').html(name);
+		}
+		
+		
+		var i = 1, options = ["rgb(245, 193, 124)", "rgb(214, 187, 102)"];
+		
+		$.each($('#middleBar').children(), function(o, element) {
+			   element.style.backgroundColor = options[i];
+			   i++;
+			   i = i % options.length;
+			   
+			   });
+			   
+		$('#middleBarBack').html($('#middleBar').html());
+
+		</script>
+	
+	
+</html>
