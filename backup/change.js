@@ -181,6 +181,16 @@ function form2(node) {
 			}
 
 
+			var styleColor = font.style.color;
+			if (styleColor) {
+				var colorColor = font.color;
+
+				if (!colorColor) {
+					font.color = tinycolor(styleColor).toHexString();
+				}
+				font.style.color = "";
+			}
+
 			if (font.childNodes.length == 0) {
 				if (fonts.length == 1) {
 					font.appendChild(document.createElement('br'));
@@ -244,7 +254,7 @@ function form2(node) {
 				continue;
 			}
 
-			if (equalAttrs(fonts[n].attributes, fonts[n+1].attributes, true)) {
+			if (equalFontAttrs(fonts[n].attributes, fonts[n+1].attributes, true)) {
 				fonts[n].textContent += fonts[n+1].textContent;
 
 				child.removeChild(fonts[n+1]);
@@ -466,10 +476,46 @@ if (typeof exports != "undefined") exports.createNodeTree = createNodeTree;
 function equalAttrs(attrs1, attrs2, ignoreID) {
 	if (attrs1 == undefined || attrs2 == undefined) return attrs1 == attrs2;
 	
-	if (attrs1.length != attrs2.length) return false;
+	var boost1 = 0, boost2 = 0;
+	if (ignoreID) {
+		if (!attrs1['id']) boost1++;
+		if (!attrs2['id']) boost2++;
+	}
+
+	if (attrs1.length + boost1 != attrs2.length + boost2) return false;
 	
 	for (var i = 0; i < attrs1.length; i++) {
 		var key = attrs1[i].name;
+		if (attrs1[key].name == 'id' && ignoreID) continue;
+
+		if (attrs2[key] == undefined || attrs2[key] == null) return false;
+
+		if (attrs1[key].value != attrs2[key].value) return false;
+	}
+	
+	return true;
+}
+
+function equalFontAttrs(attrs1, attrs2, ignoreID) {
+	if (attrs1 == undefined || attrs2 == undefined) return attrs1 == attrs2;
+	
+	var boost1 = 0, boost2 = 0;
+
+	if (!attrs1['style']) boost1++;
+	if (!attrs2['style']) boost2++;
+
+	if (ignoreID) {
+		if (!attrs1['id']) boost1++;
+		if (!attrs2['id']) boost2++;
+	}
+
+	if (attrs1.length + boost1 != attrs2.length + boost2) return false;
+	
+	for (var i = 0; i < attrs1.length; i++) {
+		var key = attrs1[i].name;
+
+		if (key == 'style') continue;
+
 		if (attrs1[key].name == 'id' && ignoreID) continue;
 
 		if (attrs2[key] == undefined || attrs2[key] == null) return false;

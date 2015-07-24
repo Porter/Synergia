@@ -43,6 +43,7 @@ app.use('/bootstrap', express.static(__dirname + '/bootstrap')); // bootstrap yo
 app.use('/rangyinput.js', express.static(__dirname + '/rangyinput.js'));
 app.use('/diff.js', express.static(__dirname + '/diff.js'));
 app.use('/change.js', express.static(__dirname + '/change.js'));
+app.use('/tinycolor.js', express.static(__dirname + '/tinycolor.js'));
 app.use('/jquery-1.11.1.js', express.static(__dirname + '/jquery-1.11.1.js'));
 app.use('/socket.io-1.2.0.js', express.static(__dirname + '/socket.io-1.2.0.js'));
 app.use( bodyParser.json() );       // to support JSON-encoded bodies
