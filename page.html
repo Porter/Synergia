@@ -75,6 +75,7 @@
 		border: 4px solid rgb(51, 133, 51);
 		border-radius:20px;
 		margin-top:2vh;
+		overflow: scroll;
 	}
 	
 	
@@ -138,13 +139,13 @@
 
 	.kix-cursor {
 	  cursor: text;
-	  position: fixed;
+	  position: absolute;
 	  z-index: 24;
 	}
 	
 
 	.kix-cursor-caret {
-	  position: fixed;
+	  position: absolute;
 	  width: 0px;
 	  border-left: 2px solid;
 	  font-size: 0;
@@ -213,7 +214,7 @@
 				</div>
 
 				<div id="cursors-template-container" style="display: none">
-					<div class="kix-cursor docs-ui-unprintable" style="opacity: 1; left: 0px; top: 0px;"><div class="kix-cursor-caret" style="border-color: rgb(15, 157, 88); height: 22.4px;"></div><div class="kix-cursor-top" style="opacity: 1; background-color: rgb(15, 157, 88);"></div><div class="kix-cursor-name" style="opacity: 0; display: none; background-color: rgb(15, 157, 88);"></div></div>
+					<div class="kix-cursor docs-ui-unprintable" style="opacity: 1; left: 0px; top: 0px;"><div class="kix-cursor-caret" style="border-color: rgb(15, 157, 88); height: 22.4px;"></div><div class="kix-cursor-top" style="opacity: 1; background-color: rgb(15, 157, 88);"></div><div class="kix-cursor-name" style="opacity: 0; display: none; background-color: rgb(15, 157, 88);"></div><span style="display:none"></span></div>
 				</div>
 
 				<ul id="people">
@@ -445,6 +446,8 @@
 		
 		
 		var oldNodes, lastPush, lastStructure, preForm, from, oldCursor = [], userLookup, undefinedUsers = [];
+
+		var cursorPositions = {}, lastSize;
 		
 		function check() {
 			var el = document.getElementById("testArea");
@@ -464,8 +467,6 @@
 			}
 
 			var element = $('#testArea')[0];
-			var coordinates = [0, 0];//getCaretCoordinates(element, element.selectionEnd);
-
 
 			if (val != oldNodes.innerHTML) {
 				console.log("old", oldNodes.innerHTML);
@@ -593,8 +594,6 @@
 			console.log("initing with " + msg['struct']);
 
 			userLookup = msg['userLookup'];
-			
-
 
 			var text = msg['text'];
 			var struct = createNodeTree(msg['struct']);
@@ -616,8 +615,86 @@
 
 			$('#title').html(msg['title']);
 
+			var cursor = msg['cursor'];
+			console.log(cursor);
+
+			for (key in users) {
+				if (!cursor[key]) continue;
+				var data = {};
+		        data[key] = cursor[key];
+		        onCursorChange(data);
+			}
+
 			showUsers(users);
+
+			$('#testArea').scroll(function (ev) {
+				console.log('scroll');
+				for (var key in cursorPositions) {
+					var el = $('#cursor-' + key)[0];
+					if (el) {
+						setCursorPosition(el, cursorPositions[key][0], cursorPositions[key][1]);
+					}
+				}
+			});
 		});
+
+		function setCursorPosition(el, left, top, height) {
+			var testArea = $('#testArea')[0];
+			left -= testArea.scrollLeft;
+			top -=  testArea.scrollTop;
+			el.style.left = left + "px";
+			el.style.top  = top + "px";
+
+			height = height || parseInt(el.childNodes[3].innerHTML);
+			el.childNodes[3].innerHTML = height;
+
+			el.childNodes[0].style.height  = height + "px";
+
+			if (top < -height) {
+				el.style.display = "none";
+				el.childNodes[0].style.display = "none";
+				el.childNodes[1].style.display = "none";
+			}
+			else if (top < 0) {
+				el.style.display = "";
+				el.childNodes[0].style.display = "";
+				el.childNodes[1].style.display = "none";
+
+				console.log("setting height to " + (height+top-4));
+				el.style.top = "4px";
+				el.childNodes[0].style.height  = (max(height+top-4, 0)) + "px";
+			}
+			else if (top < 4) {
+				el.style.display = "";
+				el.childNodes[0].style.display = "";
+				el.childNodes[1].style.display = "none";
+			}
+			else {
+				if (!lastSize) {
+					el.style.display = "";
+					el.childNodes[0].style.display = "";
+					el.childNodes[1].style.display = "";
+				}
+				else {
+
+					if (top > lastSize[1]) {
+						el.style.display = "none";
+						el.childNodes[0].style.display = "none";
+						el.childNodes[1].style.display = "none";
+					}
+					else if (top > lastSize[1] - height) {
+						el.style.display = "";
+						el.childNodes[0].style.display = "";
+						el.childNodes[1].style.display = "";
+					}
+					else {
+						el.style.display = "";
+						el.childNodes[0].style.display = "";
+						el.childNodes[1].style.display = "";
+					}
+				}
+			}
+		}
 
 		socket.on('users', function(msg) {
 			msg = JSON.parse(msg);
@@ -650,10 +727,10 @@
 			return nextNode(node);
 		}
 
-		socket.on('cur', function (msg) {
-			if (!userLookup) return;
 
-			var userRange = getCursor3();
+		function onCursorChange(msg) {
+			if (!userLookup) return;
+			console.log(msg);
 
 			var key = Object.keys(msg)[0];
 
@@ -701,9 +778,9 @@
 
 			left += msg[key][0]*15;
 
-			cursor.style.left = left + "px";
-			cursor.style.top  = top + "px";
-			cursor.childNodes[0].style.height  = height + "px";
+			
+			setCursorPosition(cursor, left, top, height);
+			
 
 			var range = document.createRange();
 			var node = getRange(msg[key][0]);
@@ -719,14 +796,35 @@
 
 				var rect = span.getBoundingClientRect();
 
-				cursor.style.left = rect.left + "px";
-				cursor.style.top  = rect.top + "px";
-				cursor.childNodes[0].style.height  = rect.height + "px";
+				var containerRect = $('#testArea')[0].getBoundingClientRect();
+
+				var left = rect.left - containerRect.left + $('#testArea')[0].scrollLeft;
+				var top  = rect.top - containerRect.top + $('#testArea')[0].scrollTop;
+
+				cursorPositions[key] = [left, top];
+				lastSize = [$('#testArea').width(), $('#testArea').outerHeight()];
+
+				setCursorPosition(cursor, left, top, height);
 
 				span.parentNode.removeChild(span);
 			}
+		}
 
-			userRange = getCursor3();
+		socket.on('cur', onCursorChange);
+
+		$(window).resize(function (ev) {
+			if (!lastSize) return;
+			return;
+
+			var size = [$('#testArea').width() / lastSize[0], $('#testArea').outerHeight() / lastSize[1]];
+			console.log(size);
+
+			for (var key in cursorPositions) {
+				var el = $('#cursor-' + key)[0];
+				if (el) {
+					setCursorPosition(el, (size[0] * cursorPositions[key][0]), (size[1]  * cursorPositions[key][1]));
+				}
+			}
 		});
 		
 		colors = [[255, 255, 255], [255, 0, 0], [0, 255, 0], [0, 0, 255]];

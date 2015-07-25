@@ -352,6 +352,7 @@ module.exports = {
             d["struct"] = doc[0].documentElement.getElementsByTagName("body")[0].innerHTML;
             d["text"] = doc[1];
             d["color"] = color;
+            d["cursor"] = doc[4];
             d["currentUsers"] = doc[2];
             d["title"] = doc[5];
             d["userLookup"] = doc[7];

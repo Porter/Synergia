@@ -309,7 +309,7 @@ function form2(node) {
 				if (newDiv.childNodes.length == 0) {
 					var nf = document.createElement('font');
 					nf.appendChild(document.createElement('br'));
-					newDiv.appendChild(nfs);
+					newDiv.appendChild(nf);
 				}
 				break; // continue looking at this div. we added the pure div before this one, so no need to n--
 			}
@@ -1177,10 +1177,13 @@ function nodesToColorizeHelper(node, range, len, nodesInRange, soFar) { // retur
 
 
 function toColorize(changes) { // returns the ranges to colorize
+	var isPost = changes[changes.length-1];
 	changes = changes.slice(0, changes.length-1);
 	
 	var offset = 0;
 	for (var i = 0; i < changes.length; ) {
+		if (i == changes.length - 1 && isPost) offset = 0;
+
 		if (isDeletion(changes[i])) {
 			offset -= changes[i][1];
 			
