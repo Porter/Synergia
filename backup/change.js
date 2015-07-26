@@ -732,7 +732,7 @@ function nodeTreeDifference(section1, section2, soFar, differences, length) {
 }
 
 
-function getNodeChanges(node1, node2) {
+function getNodeChanges(node1, node2, cursor) {
 	var node1 = node1 || $('#section1')[0];
 	var node2 = node2 || $('#section2')[0];
 	
@@ -744,11 +744,51 @@ function getNodeChanges(node1, node2) {
 	//console.log("node2 tree: " + nodeTree(node2, true, false).outerHTML);
 	
 	var textChanges_ = changes(node1, node2);
+
+	var textContent = node2.textContent, textContentLength = textContent.length;
+	for (var i = 0; i < textChanges_.length; i++) {
+		var textChange = textChanges_[i];
+
+		if (textChange.length == 2 && typeof textChange[1] == "string") {
+
+			var incrs = [-textChange[1].length, textChange[1].length];
+
+			var range = [];
+			for (var n = 0; n < incrs.length; n++) {
+				var incr = incrs[n];
+
+				for (var pos = textChange[0]; true; pos += incr) {
+
+					if (pos < 0 || pos >= textContentLength) {
+						range.push(pos - incr);
+						break;
+					}
+
+					var str = textContent.substring(pos, pos + textChange[1].length);
+
+					if (str != textChange[1] ) {
+						range.push(pos - incr);
+						break;
+					}
+				}
+			}
+			range.push(i);
+
+			if (range[0] != range[1]) {
+				var c = cursor[0][0] - 1;
+				if (c >= range[0] && c <= range[1]) {
+					if (range[2] == textChanges_.length - 2) {
+						textChanges_[textChanges_.length - 1] = c == textContentLength - 1 ? 1 : 0;
+					}
+					textChange[0] = c;
+
+				}
+			}
+		}
+	}
 	
 	if (sd) sd[1] = sd[1].outerHTML || sd[1].textContent;
 	
-	console.log("looking in ", node2);
-	console.log("with changes " + JSON.stringify(textChanges_));
 	var toColor = nodesToColorize(node2, textChanges_);
 	
 	return [sd, textChanges_, toColor];

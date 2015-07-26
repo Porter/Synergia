@@ -9,7 +9,11 @@ function arrContains(arr, obj) {
   return false;
 }
 
+var documents = {};
+
 module.exports = {
+  getDocuments: function() { return documents; },
+
   foo: function (io, passportSocketIo, secretKey, sessionStore, redis, redis_client, channels, changejs, jsdom, winston, mongo, db, secure_random, async, stats) {
 
     var BSON = mongo.ObjectID;
@@ -65,9 +69,6 @@ module.exports = {
     colors = ['#888888', '#ff0000', '#00ff00', '#0000ff', '#ffffff', '#aaaa00', '#ff00ff', '#00ffff'];
     var connected = 0;
 
-
-    var documents = {};
-
     io.on('connection', function(socket){
 
 
@@ -85,7 +86,17 @@ module.exports = {
         if (socket.doc) {
           if (documents[socket.doc]) {
             var users = documents[socket.doc][2];
-            delete users[socket.request.user];
+
+            var user = users[socket.request.user];
+            if (user['x'] <= 1) {
+              console.log("deleting " + socket.request.user, users[socket.request.user]);
+              delete users[socket.request.user];
+            }
+            else {
+              console.log("decrementing ", user);
+              user['x']--;
+            }
+            
           }
 
           socket.broadcast.to(socket.doc).emit("users", JSON.stringify( { removed: socket.request.user } ));
@@ -244,7 +255,6 @@ module.exports = {
                   var id = doc._id;
                   var userColors = doc.user;
 
-                  console.log(userColors);
                   var keys = Object.keys(userColors);
                   keys = keys.map(function (key) { return new BSON.ObjectID(key); });
 
@@ -358,10 +368,17 @@ module.exports = {
             d["userLookup"] = doc[7];
 
 
-            socket.broadcast.to(documentId).emit('users', JSON.stringify( {added: socket.request.user, color:color}  ));
+            socket.broadcast.to(documentId).emit('users', JSON.stringify( {added: socket.request.user, user:{color:color, x:1}}  ));
             socket.emit('init', JSON.stringify(d) );
 
-            doc[2][socket.request.user] = color;
+            var userColor = doc[2][socket.request.user];
+            if (!userColor) {
+              uc = {color: color, x:1}; // color of color, only logged in from one browser/tab
+              doc[2][socket.request.user] = uc;
+            } 
+            else {
+              userColor['x']++;
+            }
 
             channelsCallback();
           }

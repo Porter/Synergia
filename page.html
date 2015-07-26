@@ -472,7 +472,9 @@
 				console.log("old", oldNodes.innerHTML);
 				console.log("new", val);
 
-				changes_ = getNodeChanges(oldNodes, el);
+				changes_ = getNodeChanges(oldNodes, el, cursor);
+				console.log(JSON.stringify(changes_));
+
 
 				colorize($('#testArea')[0], changes_[1], color);
 
@@ -482,7 +484,7 @@
 
 
 				from = oldNodes;
-				console.log(JSON.stringify(changes_));
+				
 				old = $('#testArea')[0].textContent;
 				preForm = getNode();
 				form($('#testArea')[0]);
@@ -699,13 +701,30 @@
 		socket.on('users', function(msg) {
 			msg = JSON.parse(msg);
 
-			if (msg['added']) users[msg['added']] = msg['color'];
-			if (msg['removed']) {
-				delete users[msg['removed']];
+			if (msg['added']) {
+				var toAdd = msg['added'];
 
-				var cursor = $('#cursor-' + msg['removed']);
-				if (cursor.length > 0) {
-					$('#cursors')[0].removeChild(cursor[0]);
+				if (users[toAdd]) {
+					users[toAdd]['x']++;
+				}
+				else {
+					users[toAdd] = msg['user'];
+				}
+			}
+			if (msg['removed']) {
+				var toRemove = users[msg['removed']];
+
+				if (toRemove['x'] <= 1) {
+
+					delete users[msg['removed']];
+
+					var cursor = $('#cursor-' + msg['removed']);
+					if (cursor.length > 0) {
+						$('#cursors')[0].removeChild(cursor[0]);
+					}
+				}
+				else {
+					toRemove['x']--;
 				}
 			}
 
@@ -734,7 +753,7 @@
 
 			var key = Object.keys(msg)[0];
 
-			var cursorColor = users[key];
+			var cursorColor = users[key]['color'];
 
 			var cursor = document.getElementById('cursor-' + key);
 
@@ -834,10 +853,10 @@
 			var ul = $('#leftBarUl')[0];
 			ul.innerHTML = "";
 
-			var keys = Object.keys(users);
-			for (var i = 0; i < keys.length; i++) {
-				var user = keys[i];
-				var color = users[keys[i]];
+			console.log(users);
+			for (var user in users) {
+				console.log(user);
+				var color = users[user]['color'];
 
 				var li = document.createElement('li');
 

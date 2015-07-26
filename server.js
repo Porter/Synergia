@@ -92,13 +92,34 @@ function runServer(db, callback) {
       }
   }
 
+
+  var stats = require('./stats');
+  stats.init(email, db);
+
+  require('./auth').foo(app, passport, LocalStrategy, db, secure_random);
+  
+  var mySocket = require('./socket');
+  mySocket.foo(io, passportSocketIo, secretKey, sessionStore, redis, client, channels, changejs, jsdom, winston, mongo, db, secure_random, async, stats);
+
+  require('./api').foo(app, channels, db, secure_random, async); 
+  require('./test').foo(app, pg); 
+
   app.get('/', function(req, res){
 
     var collection = db.collection('documents');
+
+    var documents = mySocket.getDocuments();
+
+    var users = {};
+    for (key in documents) {
+      users[key] = documents[key][2];
+    }
+
     collection.find({}).toArray(function(err, docs) {
       res.end(swig.renderFile(__dirname + "/index.html", {
         username: JSON.stringify(req.user),
-        documents: docs
+        documents: docs,
+        users: users
       }));
     }); 
   });
@@ -142,14 +163,6 @@ function runServer(db, callback) {
     client.set('cur:doc', '');
     res.end();
   });
-
-  var stats = require('./stats');
-  stats.init(email, db);
-
-  require('./auth').foo(app, passport, LocalStrategy, db, secure_random);
-  require('./socket').foo(io, passportSocketIo, secretKey, sessionStore, redis, client, channels, changejs, jsdom, winston, mongo, db, secure_random, async, stats);
-  require('./api').foo(app, channels, db, secure_random, async); 
-  require('./test').foo(app, pg); 
   
 
   app.get('/errors', function(req, res) {

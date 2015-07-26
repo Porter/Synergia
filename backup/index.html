@@ -21,7 +21,7 @@
 			<ul style="list-style-type: none;">
 
 			{% for doc in documents %}
-			  <li> <a href="/docs/view?doc={{ doc._id.toString() }}&title={{ doc.name }}"> {{ doc.name }} </a></li>
+			  <li id='{{doc._id.toString()}}'> <a href="/docs/view?doc={{ doc._id.toString() }}&title={{ doc.name }}"> {{ doc.name }} </a></li>
 			{% endfor %}
 
 			</ul>
@@ -39,6 +39,10 @@
 	</body>
 
 	<script type="text/javascript">
+
+		{% for user in users %}
+		$('#{{loop.key}}')[0].innerHTML += {{ Object.keys(user).length }};
+		{% endfor %}
 
 		status = 0;
 
