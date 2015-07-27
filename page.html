@@ -210,7 +210,7 @@
 					</button>
 					<ul class="nav navbar-nav">
 						<li class="navbar-brand">
-							<a style="top:-15px" href="/">The Name</a>
+							<a style="top:-15px" href="/">HOME PAGE</a>
 						</li>
 					</ul>
 				</div>
@@ -236,11 +236,13 @@
 						<button id="notify" onclick="notify(this)">notify</button>
 						<button id="cancel" onclick="cancelNotify(this)" style="display:none">cancel</button>
 					</center>
-					<ul id="leftBarUl"></ul>
+					<ul id="leftBarUlActive"></ul>
+					<hr/>
+					<ul id="leftBarUlNotActive"></ul>
 				</div>
 			</div>
 			<div class="col-xs-6">
-				<div class="title" id="title"></div>
+				<center><div class="title" id="title"></div></center>
 				<div id="main">
 					<div id="mainArea">
 						<div id="testArea" class="main" tabindex=-1 contenteditable=true></div>
@@ -267,10 +269,10 @@
 		
 		
 		<div id="middleBar" style="display:none">
-			<div id="status">Your status</div>
-			<div>Stuff</div>
-			<div><a href="/">Stuff</a></div>
-			<div>Stuff</div>
+			<div id="status"></div>
+			<div></div>
+			<div></div>
+			<div></div>
 			
 		</div>
 		<div id="middleBarBack" >
@@ -923,17 +925,22 @@
 		}
 
 		function sendNotification() {
-			var lis = $('#leftBarUl')[0].childNodes;
+			var lis1 = $('#leftBarUlActive')[0].childNodes;
+			var lis2 = $('#leftBarUlNotActive')[0].childNodes;
+			var list = [lis1, lis2];
 
 			var ids = [];
-			for (var i = 0; i < lis.length; i++) {
-				var li = lis[i];
+			for (var n = 0; n < list.length; n++) {
+				var lis = list[n];
+				for (var i = 0; i < lis.length; i++) {
+					var li = lis[i];
 
-				var inp = li.childNodes[0];
-				if (inp && inp.nodeName.toLowerCase() == "input" && inp.checked) {
-					if (li.childNodes[1]) {
-						var id = li.childNodes[1].id.substring(5); //5 because the id is user-3424userid234324
-						ids.push(id);
+					var inp = li.childNodes[0];
+					if (inp && inp.nodeName.toLowerCase() == "input" && inp.checked) {
+						if (li.childNodes[1]) {
+							var id = li.childNodes[1].id.substring(5); //5 because the id is user-3424userid234324
+							ids.push(id);
+						}
 					}
 				}
 			}
@@ -943,11 +950,21 @@
 		}
 
 		function showUsers(users) {
-			var ul = $('#leftBarUl')[0];
-			ul.innerHTML = "";
+			var ulActive = $('#leftBarUlActive')[0];
+			var ulNotActive = $('#leftBarUlNotActive')[0];
+			ulActive.innerHTML = ulNotActive.innerHTML = "";
 
-			for (var user in users) {
-				var color = users[user]['color'];
+			for (var user in userLookup) {
+				var ul, color;
+				
+				if (users[user]) {
+					var ul = ulActive;
+					var color = users[user]['color'];
+				}
+				else {
+					var ul = ulNotActive;
+					var color = 'black';
+				}
 
 				var li = document.createElement('li');
 

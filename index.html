@@ -8,12 +8,36 @@
 		
 		<link href="/bootstrap/css/bootstrap.min.css" rel="stylesheet">
 	</head>
+
+	<style>
+
+			body{
+				background-color: rgb(15,4,87);
+				color:white;
+				font-size: 20px;
+				line-height: 40px;
+				letter-spacing: .5px;
+			}
+
+			form > input {
+				color: black;
+			}
+
+			#Heading {
+				background-color: rgb(121, 101, 141);
+				color:dte;
+				font-family: Lucida Console ;
+				padding: 20px;
+			}
+
+  
+		</style>
 	
 	<body>
 		
 		<center>
 
-			<h2>Choose a Document</h2>
+			<h2 id="Heading">LOCAL SYNERGIE</h2>
 
 			<br/><br/>
 
@@ -28,7 +52,7 @@
 
 			<form onsubmit="javascript:thing(); return false;">
 				<input id="name" type="text">
-				<input type="submit" value="Create">
+				<input type="submit" value="CREATE NEW DOCUMENT">
 			</form>
 
 		</center>
@@ -50,9 +74,10 @@
 				for (var i = 0; i < lis.length; i++) {
 					lis[i].childNodes[1].innerHTML = "";
 				}
-				
+
 				for (var key in resp) {
-					$('#' + key)[0].innerHTML = resp[key];
+					var amount = resp[key];
+					$('#' + key)[0].innerHTML = " | " + amount + " " + (amount == 1 ? "user" : "users");
 				}
 			});
 			setTimeout(check, 5000);
