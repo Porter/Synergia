@@ -1,3 +1,7 @@
+console.log('---------------------------------------------------------');
+console.log('here we go');
+console.log('---------------------------------------------------------');
+
 var arguments = process.argv.slice(2), email = {}, keywords = ["email", "password"];
 var mode;
 
@@ -50,7 +54,8 @@ var colors = require('colors');
 var secure_random = require('secure-random');
 
 var mongo = require('mongodb'),
-  MongoClient = mongo.MongoClient;
+  MongoClient = mongo.MongoClient,
+  BSON = mongo.ObjectID;
 
 var url = require('url');
 var redis = require("redis");
@@ -68,7 +73,7 @@ else {
 winston.add(winston.transports.File, { filename: 'logs.log' });
 winston.remove(winston.transports.Console);
 
-var sessionStore = new RedisStore(redis);
+var sessionStore = new RedisStore({client: client});
 
 var async = require('async');
 
@@ -97,7 +102,7 @@ app.use(session({
 app.use(passport.initialize());   // passport initialize middleware
 app.use(passport.session());      // passport session middleware 
 
-app.set('port', (process.env.PORT || 5000));
+app.set('port', (process.env.PORT || 80));
 
 
 if (!email['email']) { console.warn("no email provided, using default".yellow); }
@@ -143,7 +148,7 @@ function runServer(db, callback) {
     res.end(JSON.stringify(users));
   })
 
-  app.get('/', function(req, res){
+  app.get('/', loggedIn, function(req, res){
 
     var collection = db.collection('documents');
 
@@ -158,10 +163,17 @@ function runServer(db, callback) {
   app.get('/docs/view', loggedIn, function(req, res){
     console.log("req.user: " + JSON.stringify(req.user));
 
+    var collection = db.collection('g');
 
-    res.end(swig.renderFile(__dirname + "/page.html", {
-      username: JSON.stringify(req.user)
-    })); 
+    collection.findOne({_id:BSON.ObjectID(req.user)}, {user:1, email:1, displayName:1}, function (err, reply) {
+      if (err) console.log(err);
+      console.log(reply);
+      res.end(swig.renderFile(__dirname + "/page.html", {
+        username: reply['user'] || reply['displayName'] || reply['email']
+      })); 
+    });
+
+    
   });
 
   app.get('/login', function(req, res) {
@@ -220,9 +232,9 @@ function runServer(db, callback) {
 
     res.end('');
     
-  });
+  }); 
 
-  app.listen(app.get('port'), function(){
+  http.listen(app.get('port'), function(){
     console.log('listening on *:' + app.get('port'));
   });
 
@@ -237,7 +249,7 @@ function runServer(db, callback) {
 async.waterfall([
 
     function (callback) {
-      var uri = mode == 'production' ? 'mongodb://heroku_tw7tpcwn:' + process.env.My_MongoLab_Password + '@ds027483.mongolab.com:27483/heroku_tw7tpcwn' : 'mongodb://localhost:27017/test';
+      var uri = mode == 'production' ? 'mongodb://porter:'+process.env.My_MongoLab_Password+'@ds027483.mongolab.com:27483/heroku_tw7tpcwn' : 'mongodb://localhost:27017/test';
 
       console.log("connecting with uri " + uri);
       MongoClient.connect(uri, function(err, db_) {

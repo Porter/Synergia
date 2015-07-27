@@ -20,7 +20,6 @@
 		}
 	
 	.title {
-		margin-top: 7vh;
 		font-size: 24px;
 		font-family:"Courier";
 		font-weight: bold;
@@ -199,9 +198,37 @@
 	
 	<body>
 
+		<nav class="navbar navbar-inverse navbar-static-top">
+			<div class="container-fluid">
+				<!-- Brand and toggle get grouped for better mobile display -->
+				<div class="navbar-header">
+					<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+						<span class="sr-only">Toggle navigation</span>
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+					</button>
+					<ul class="nav navbar-nav">
+						<li class="navbar-brand">
+							<a style="top:-15px" href="/">The Name</a>
+						</li>
+					</ul>
+				</div>
+				
+				<!-- Collect the nav links, forms, and other content for toggling -->
+				<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+					
+					<ul class="nav navbar-nav navbar-right" style="margin-right: 5%">
+						<li><a href="javascript:alert('not live yet');">{{ username }}</a></li>
+						<li><a href="/logout">Sign out</a></li>
+					</ul>
+					
+				</div><!-- /.navbar-collapse -->
+			</div><!-- /.container-fluid -->
+		</nav>
+
 		<div id="status" style="position: fixed; width: 50px; height: 50px; right: 0px; top 50px; background-color:green;"></div>
 		
-		<br/>
 		<div class="row">
 			<div class="col-xs-4">
 				<div id="leftBar">

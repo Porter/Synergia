@@ -175,17 +175,14 @@ module.exports = {
 
         var thing = [documents[documentId][0].parentWindow.window.document.getElementById('testArea').outerHTML, documents[documentId][1]];
 
+        socket.emit('resp', JSON.stringify(thing));
+        socket.broadcast.to(socket.doc).emit('update', JSON.stringify(thing));
+
+        saveDocument(db, documentId, documents[documentId], null);
+
         
-        setTimeout(function() {
-          socket.emit('resp', JSON.stringify(thing));
-          socket.broadcast.to(socket.doc).emit('update', JSON.stringify(thing));
-
-          saveDocument(db, documentId, documents[documentId], null);
-
-          
-          if (cursorChange) { changeCursor(documentId, user, cursorChange, callback); return; }
-          else callback();
-        }, 1000);
+        if (cursorChange) { changeCursor(documentId, user, cursorChange, callback); return; }
+        else callback();
       }
 
       var documentChanger = new channels.channels(changeDocument);
