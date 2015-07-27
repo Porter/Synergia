@@ -92,6 +92,8 @@ function runServer(db, callback) {
       }
   }
 
+  var notifier = require('./notify');
+  notifier.init(email);
 
   var stats = require('./stats');
   stats.init(email, db);
@@ -99,27 +101,35 @@ function runServer(db, callback) {
   require('./auth').foo(app, passport, LocalStrategy, db, secure_random);
   
   var mySocket = require('./socket');
-  mySocket.foo(io, passportSocketIo, secretKey, sessionStore, redis, client, channels, changejs, jsdom, winston, mongo, db, secure_random, async, stats);
+  mySocket.foo(io, passportSocketIo, secretKey, sessionStore, redis, client, channels, changejs, jsdom, winston, mongo, db, secure_random, async, stats, notifier);
 
   require('./api').foo(app, channels, db, secure_random, async); 
   require('./test').foo(app, pg); 
 
-  app.get('/', function(req, res){
-
-    var collection = db.collection('documents');
+  app.get('/aval', function(req, res) {
+    
 
     var documents = mySocket.getDocuments();
 
     var users = {};
     for (key in documents) {
-      users[key] = documents[key][2];
+      var len = Object.keys(documents[key][2]).length;
+      if (len != 0) {
+        users[key] = len;
+      }
     }
+
+    res.end(JSON.stringify(users));
+  })
+
+  app.get('/', function(req, res){
+
+    var collection = db.collection('documents');
 
     collection.find({}).toArray(function(err, docs) {
       res.end(swig.renderFile(__dirname + "/index.html", {
         username: JSON.stringify(req.user),
         documents: docs,
-        users: users
       }));
     }); 
   });
@@ -175,7 +185,6 @@ function runServer(db, callback) {
 
     if (req.query.keys) {
       aggregate = true;
-      console.log("ag");
 
       group = {_id:'$type', len: {'$first' : {'$size':'$errors'}}};
     }

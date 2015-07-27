@@ -21,7 +21,7 @@
 			<ul style="list-style-type: none;">
 
 			{% for doc in documents %}
-			  <li id='{{doc._id.toString()}}'> <a href="/docs/view?doc={{ doc._id.toString() }}&title={{ doc.name }}"> {{ doc.name }} </a></li>
+			  <li><a href="/docs/view?doc={{ doc._id.toString() }}&title={{ doc.name }}"> {{ doc.name }} </a><span id='{{doc._id.toString()}}'></span></li>
 			{% endfor %}
 
 			</ul>
@@ -40,9 +40,26 @@
 
 	<script type="text/javascript">
 
-		{% for user in users %}
-		$('#{{loop.key}}')[0].innerHTML += {{ Object.keys(user).length }};
-		{% endfor %}
+
+		function check() {
+
+			
+
+			$.getJSON('/aval', function(resp){ 
+				var lis = $('li');
+				for (var i = 0; i < lis.length; i++) {
+					lis[i].childNodes[1].innerHTML = "";
+				}
+				
+				for (var key in resp) {
+					$('#' + key)[0].innerHTML = resp[key];
+				}
+			});
+			setTimeout(check, 5000);
+		}
+
+		check();
+
 
 		status = 0;
 

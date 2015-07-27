@@ -14,7 +14,7 @@ var documents = {};
 module.exports = {
   getDocuments: function() { return documents; },
 
-  foo: function (io, passportSocketIo, secretKey, sessionStore, redis, redis_client, channels, changejs, jsdom, winston, mongo, db, secure_random, async, stats) {
+  foo: function (io, passportSocketIo, secretKey, sessionStore, redis, redis_client, channels, changejs, jsdom, winston, mongo, db, secure_random, async, stats, notifier) {
 
     var BSON = mongo.ObjectID;
 
@@ -111,11 +111,6 @@ module.exports = {
       function changeCursor(documentId, user, cursor, callback) {
         var doc = documents[documentId];
 
-        if (!cursor) {
-          callback();
-          return
-        }
-
         doc[4][user] = cursor;
 
         var data = {};
@@ -127,6 +122,12 @@ module.exports = {
       }
 
       function changeDocument(msg, callback) {
+
+        if (msg['customFunc']) {
+          msg['customFunc']();
+          callback();
+          return;
+        }
 
         var user = socket.request.user;
         var documentId = msg['documentId'];
@@ -161,20 +162,10 @@ module.exports = {
           changejs.applyStructuralChanges(documents[documentId][0].parentWindow.window.document.getElementById('testArea'), changes[0]);
         }
 
-        console.log("after struct");
-        console.log(changejs.strip(documents[documentId][0].parentWindow.window.document.getElementById('testArea')).outerHTML);
-
         changejs.colorizeStructure(changes[2], documents[documentId][0].parentWindow.window.document.getElementById('testArea'));
-
-        console.log("after color");
-        console.log(changejs.strip(documents[documentId][0].parentWindow.window.document.getElementById('testArea')).outerHTML);
 
 
         changejs.form(documents[documentId][0].parentWindow.window.document.getElementById('testArea'));
-
-        console.log("after form");
-        console.log(changejs.strip(documents[documentId][0].parentWindow.window.document.getElementById('testArea')).outerHTML);
-        console.log('------------------------------');
 
 
         //console.log("applying " + JSON.stringify(changes[1]) + " to " + documents[documentId][1]);
@@ -184,14 +175,17 @@ module.exports = {
 
         var thing = [documents[documentId][0].parentWindow.window.document.getElementById('testArea').outerHTML, documents[documentId][1]];
 
-        socket.emit('resp', JSON.stringify(thing));
-        socket.broadcast.to(socket.doc).emit('update', JSON.stringify(thing));
-
-        saveDocument(db, documentId, documents[documentId], null);
-
         
-        if (cursorChange) { changeCursor(documentId, user, cursorChange, callback); return; }
-        else callback();
+        setTimeout(function() {
+          socket.emit('resp', JSON.stringify(thing));
+          socket.broadcast.to(socket.doc).emit('update', JSON.stringify(thing));
+
+          saveDocument(db, documentId, documents[documentId], null);
+
+          
+          if (cursorChange) { changeCursor(documentId, user, cursorChange, callback); return; }
+          else callback();
+        }, 1000);
       }
 
       var documentChanger = new channels.channels(changeDocument);
@@ -222,6 +216,15 @@ module.exports = {
         }
       });
 
+
+      socket.on('LengthMismatch', function(d) {
+        documentChanger.emit(socket.doc, {
+          customFunc:function() {
+            console.log("fixing " + documents[socket.doc][1] + " to " + d);
+            documents[socket.doc][1] = d;
+          }
+        });
+      });
 
 
       function init(documentId, channelsCallback) {
@@ -438,6 +441,19 @@ module.exports = {
           }
         });
 
+      });
+
+      socket.on('notify', function(ids) {
+        var collection = db.collection('g');
+
+        ids = ids.map(function (id) { return BSON.ObjectID(id); });
+        collection.find( { _id: {'$in':ids} }, {email:1, user:1} ).toArray(function(err, replies) {
+          replies.forEach(function (reply) {
+            console.log(reply.email);
+
+          });
+        });
+        console.log('http://localhost/docs/view?doc=' + socket.doc);
       });
 
       socket.on('clientError', function (msg) {

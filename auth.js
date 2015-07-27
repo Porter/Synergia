@@ -116,18 +116,25 @@ module.exports = {
 
       
       var collection = db.collection('g');
-      collection.insert({user:req.body.username, password:req.body.password}, function(err, result) {
-        if (err) { console.log(err); res.redirect("/"); return; }
+      collection.insert(
+        {
+          user:req.body.username,
+          password:req.body.password,
+          hasUserName: true
+        },
 
-        passport.authenticate('local', function(err, user, info) {
-          req.login(user, function(err) {
-            if (err) { console.log(err); return (err); }
-            console.log("req.user: " + JSON.stringify(req.user));
-            return res.redirect('/');
-          });
-        })(req, res);
+        function(err, result) {
+          if (err) { console.log(err); res.redirect("/"); return; }
 
-      });
+          passport.authenticate('local', function(err, user, info) {
+            req.login(user, function(err) {
+              if (err) { console.log(err); return (err); }
+              console.log("req.user: " + JSON.stringify(req.user));
+              return res.redirect('/');
+            });
+          })(req, res);
+
+        });
     });
   
 
