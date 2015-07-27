@@ -124,7 +124,7 @@ function runServer(db, callback) {
   var stats = require('./stats');
   stats.init(email, db);
 
-  require('./auth').foo(app, passport, LocalStrategy, db, secure_random);
+  require('./auth').foo(app, passport, LocalStrategy, db, secure_random, mode == 'production');
   
   var mySocket = require('./socket');
   mySocket.foo(io, passportSocketIo, secretKey, sessionStore, channels, changejs, jsdom, winston, mongo, db, secure_random, async, stats, notifier);
@@ -167,7 +167,9 @@ function runServer(db, callback) {
 
     collection.findOne({_id:BSON.ObjectID(req.user)}, {user:1, email:1, displayName:1}, function (err, reply) {
       if (err) console.log(err);
-      console.log(reply);
+      console.log("reply", reply);
+      if (reply['user'] && reply['user'].startsWith('gU:')) reply['user'] = reply['user'].substring(3);
+
       res.end(swig.renderFile(__dirname + "/page.html", {
         username: reply['user'] || reply['displayName'] || reply['email']
       })); 
