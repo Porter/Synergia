@@ -235,7 +235,9 @@ function runServer(db, callback) {
 async.waterfall([
 
     function (callback) {
-      MongoClient.connect('mongodb://localhost:27017/test', function(err, db_) {
+      var uri = mode == 'production' ? 'mongodb://heroku_tw7tpcwn:' + process.env.My_MongoLab_Password + '@ds027483.mongolab.com:27483/heroku_tw7tpcwn' : 'mongodb://localhost:27017/test';
+
+      MongoClient.connect(uri, function(err, db_) {
 
         if (err){
           callback(err);
