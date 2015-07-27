@@ -14,7 +14,7 @@ var documents = {};
 module.exports = {
   getDocuments: function() { return documents; },
 
-  foo: function (io, passportSocketIo, secretKey, sessionStore, redis, redis_client, channels, changejs, jsdom, winston, mongo, db, secure_random, async, stats, notifier) {
+  foo: function (io, passportSocketIo, secretKey, sessionStore, channels, changejs, jsdom, winston, mongo, db, secure_random, async, stats, notifier) {
 
     var BSON = mongo.ObjectID;
 
@@ -418,16 +418,6 @@ module.exports = {
 
 
         initer.emit(msg, msg);
-      });
-
-      socket.on('set', function(msg) {
-        documents[documentName].parentWindow.window.document.body.innerHTML = msg;
-        
-
-        redis_client.set(documentName + ":doc", documents[documentName].parentWindow.window.document.body.innerHTML, function(err, reply) {
-          socket.emit('resp', documents[documentName].parentWindow.window.document.body.innerHTML);
-          socket.broadcast.emit('update', documents[documentName].parentWindow.window.document.body.innerHTML);
-        }); 
       });
 
       socket.on('rename', function (msg) {

@@ -1,3 +1,19 @@
+var arguments = process.argv.slice(2), email = {}, keywords = ["email", "password"];
+var mode;
+
+for (var i = 0; i < arguments.length; i++) {
+  var arg = "" + arguments[i].toString();
+  for (var n = 0; n < keywords.length; n++) {
+    var word = keywords[n];
+    if (arg.startsWith(word + '=')) { email[word] = arg.substring(word.length + 1); }
+
+    if (arg.startsWith('mode=')) mode = arg.substring(5);
+  }
+}
+
+
+
+
 var express = require('express');
 var app = express();
 
@@ -14,8 +30,7 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var passportSocketIo = require("passport.socketio");
 var RedisStore = require("connect-redis")(session);
-var redis = require("redis"),
-        client = redis.createClient();
+
 var channels = require("./channels");
 var changejs = reload("./change")
 var jsdom = require("jsdom");
@@ -29,6 +44,19 @@ var secure_random = require('secure-random');
 
 var mongo = require('mongodb'),
   MongoClient = mongo.MongoClient;
+
+var url = require('url');
+var redis = require("redis");
+
+var client;
+if (mode == 'production') {
+  var redisURL = url.parse(process.env.REDIS_URL);
+  var client = redis.createClient(redisURL.port, redisURL.hostname);
+  client.auth(redisURL.auth.split(":")[1]);
+}
+else {
+  client = redis.createClient();
+}
 
 winston.add(winston.transports.File, { filename: 'logs.log' });
 winston.remove(winston.transports.Console);
@@ -69,15 +97,6 @@ if (typeof String.prototype.startsWith != 'function') {
   };
 }
 
-var arguments = process.argv.slice(2), email = {}, keywords = ["email", "password"];
-
-for (var i = 0; i < arguments.length; i++) {
-  var arg = "" + arguments[i].toString();
-  for (var n = 0; n < keywords.length; n++) {
-    var word = keywords[n];
-    if (arg.startsWith(word + '=')) { email[word] = arg.substring(word.length + 1); }
-  }
-}
 
 if (!email['email']) { console.warn("no email provided, using default".yellow); }
 if (!email['password']) { console.warn("no password provided, emails won't send. I mean I'll try. Don't get your hopes up though".yellow)}
@@ -101,7 +120,7 @@ function runServer(db, callback) {
   require('./auth').foo(app, passport, LocalStrategy, db, secure_random);
   
   var mySocket = require('./socket');
-  mySocket.foo(io, passportSocketIo, secretKey, sessionStore, redis, client, channels, changejs, jsdom, winston, mongo, db, secure_random, async, stats, notifier);
+  mySocket.foo(io, passportSocketIo, secretKey, sessionStore, channels, changejs, jsdom, winston, mongo, db, secure_random, async, stats, notifier);
 
   require('./api').foo(app, channels, db, secure_random, async); 
   require('./test').foo(app, pg); 
@@ -155,23 +174,6 @@ function runServer(db, callback) {
 
   app.get('/admin', function(req, res) {
     res.sendFile(__dirname + "/admin.html");
-  });
-
-  app.get('/test', function(req, res) {
-    client.get('cur:doc', function(err, reply) {
-      try {
-        res.type('json');
-        res.end( JSON.stringify(JSON.parse(reply)['users']) || "{}")
-      }
-      catch (err) {
-        res.end(reply);
-      }
-    });
-  });
-
-  app.get('/reset', function(req, res) {
-    client.set('cur:doc', '');
-    res.end();
   });
   
 
