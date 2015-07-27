@@ -1,6 +1,13 @@
 var arguments = process.argv.slice(2), email = {}, keywords = ["email", "password"];
 var mode;
 
+if (typeof String.prototype.startsWith != 'function') {
+  // see below for better implementation!
+  String.prototype.startsWith = function (str){
+    return this.indexOf(str) === 0;
+  };
+}
+
 for (var i = 0; i < arguments.length; i++) {
   var arg = "" + arguments[i].toString();
   for (var n = 0; n < keywords.length; n++) {
@@ -90,12 +97,7 @@ app.use(session({
 app.use(passport.initialize());   // passport initialize middleware
 app.use(passport.session());      // passport session middleware 
 
-if (typeof String.prototype.startsWith != 'function') {
-  // see below for better implementation!
-  String.prototype.startsWith = function (str){
-    return this.indexOf(str) === 0;
-  };
-}
+app.set('port', (process.env.PORT || 5000));
 
 
 if (!email['email']) { console.warn("no email provided, using default".yellow); }
@@ -220,8 +222,8 @@ function runServer(db, callback) {
     
   });
 
-  http.listen(80, function(){
-    console.log('listening on *:80');
+  app.listen(app.get('port'), function(){
+    console.log('listening on *:' + app.get('port'));
   });
 
 
@@ -237,6 +239,7 @@ async.waterfall([
     function (callback) {
       var uri = mode == 'production' ? 'mongodb://heroku_tw7tpcwn:' + process.env.My_MongoLab_Password + '@ds027483.mongolab.com:27483/heroku_tw7tpcwn' : 'mongodb://localhost:27017/test';
 
+      console.log("connecting with uri " + uri);
       MongoClient.connect(uri, function(err, db_) {
 
         if (err){
