@@ -66,7 +66,7 @@ module.exports = {
       }
     }));
 
-    colors = ['#888888', '#ff0000', '#00ff00', '#0000ff', '#ffffff', '#aaaa00', '#ff00ff', '#00ffff'];
+    colors = ['#888888', '#ff0000', '#008a00', '#0000ff', '#000000', '#aaaa00', '#ff00ff', '#00ffff'];
     var connected = 0;
 
     io.on('connection', function(socket){
@@ -437,6 +437,8 @@ module.exports = {
         collection.find( { _id: {'$in':ids} }, {email:1, user:1} ).toArray(function(err, replies) {
           replies.forEach(function (reply) {
             console.log(reply.email);
+
+            notifier.send(reply.email, socket.doc, documents[socket.doc]);
 
           });
         });

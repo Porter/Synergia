@@ -11,6 +11,10 @@
 	#root {
 		cursor: pointer;
 	}
+
+	input {
+		margin: 5px;
+	}
 </style>
 <center>
 <h2 style="margin-top:100px"> Login </h3>
@@ -22,21 +26,25 @@
 </form>
 
 <br>
+</center>
 
-
-<div style="  position: relative;">
-	<button onclick="loginG()" style="opacity: 0; z-index: 10000; left: 0px; top: 0px; position: absolute; cursor: pointer; outline: 0px; width: 114px; height: 36px;">Sign in with Google</button>
-	<iframe frameborder="0" hspace="0" marginheight="0" marginwidth="0" scrolling="no" style="position: static; top: 0px; width: 114px; margin: 0px; border-style: none; left: 0px; visibility: visible; height: 36px;" tabindex="0" vspace="0" width="100%" id="I0_1437008829441" name="I0_1437008829441" src="https://apis.google.com/u/0/_/widget/render/signin" data-gapiattached="true" title="Sign in with Google"></iframe>
+<div style="position: relative; margin-left:45%; width:10%;">
+	<button id="button" onclick="loginG()" style="opacity: 0; z-index: 10000; left: 0px; top: 0px; position: absolute; cursor: pointer; outline: 0px; width: 114px; height: 36px;">Sign in with Google</button>
+	<center><iframe frameborder="0" hspace="0" marginheight="0" marginwidth="0" scrolling="no" style="position: static; top: 0px; width: 114px; margin: 0px; border-style: none; left: 0px; visibility: visible; height: 36px;" tabindex="0" vspace="0" width="100%" id="iframe" name="I0_1437008829441" src="https://apis.google.com/u/0/_/widget/render/signin" data-gapiattached="true" title="Sign in with Google"></iframe></center>
 </div>
 
+<center>
 <br>
 <hr>
 
 <h3> Sign up </h3>
 
 <form action="/createUser" method="post">
-<input placeholder="username" type="text" name="username">
-<input placeholder="password" type="password" name="password">
+<input id="user" placeholder="username" type="text" name="username"> <br/>
+<input id="pass" placeholder="email" type="text" name="email"> <br/>
+<input id="mail" placeholder="password" type="password" name="password"> <br/>
+
+	
 <input type="submit">
 </form>
 
@@ -64,10 +72,23 @@
 	$(document).ready(function() {
 					  
 					  $("iframe").contents().find("#root").css('cursor', 'pointer');
+					  
+					  setInterval(function() {
+								  var i = $('#iframe')[0];
+								  var r = i.getBoundingClientRect();
+								  $('#button').css('position', 'fixed');
+								  $('#button').css('left', r.left + 'px');
+								  $('#button').css('top', r.top + 'px')
+								  }, 500);
+					  
 					  });
 					  
+  var params = getQueryParams();
+  $('#user').val(params['username']);
+  $('#email').val(params['email']);
+					  
   function loginG() {
-	  window.location = "/auth/google/?redirect=" + encodeURIComponent(getQueryParams()['redirect']);
+	  window.location = "/auth/google/?redirect=" + encodeURIComponent(params['redirect']);
   }
 
 </script>

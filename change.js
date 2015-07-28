@@ -606,7 +606,8 @@ function structureDifferences(node, nodeTree, soFar) {
 		// this shouldn't happen
 		// idk what to do
 		// just return nothing I guess
-		console.log("node isn't different from nodeTree, even though a change was detected. Either that or the recursion got messed up");
+
+		// actually, this happens when the text changes, but the strucure doesn't
 		return;
 	}
 }
@@ -969,6 +970,14 @@ function changes(parent1, parent2) {
 	var nodes2 = parent2.childNodes;
 	var text2 = nodes2.length == 0 ? "" : nodes2[0].parentNode.textContent;
 	
+
+	for (var pos1 = text1.length-1, pos2 = text2.length-1; pos1 >= 0 && pos2 >= 0; pos1--, pos2--) {
+		if (text1.charAt(pos1) != text2.charAt(pos2)) break;
+	}
+
+	text1 = text1.substring(0, pos1+1);
+	text2 = text2.substring(0, pos2+1);
+
 	changes = textChanges(text1, text2);
 	
 	return changes;
@@ -1012,6 +1021,7 @@ function textChanges(val1, val2) {
 			else if (addition[1] == deletion[1]) {
 				changes.push([pos1, val2[pos2], 1]);
 			}
+
 			
 		}
 		pos1++;
@@ -1063,7 +1073,6 @@ function check(changes) {
 
 function executeChanges(val, changes) {
 	var offset = 0;
-	
 	for (var i = 0; i < changes.length - 1; i++) {
 		
 		var change = changes[i];

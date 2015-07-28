@@ -22,6 +22,10 @@ for (var i = 0; i < arguments.length; i++) {
   }
 }
 
+mode = mode || process.env.mode;
+
+email['email'] = email['email'] || process.env.my_email;
+email['password'] = email['password'] || process.env.my_password;
 
 
 
@@ -119,12 +123,12 @@ function runServer(db, callback) {
   }
 
   var notifier = require('./notify');
-  notifier.init(email);
+  notifier.init(email, secure_random, db, mode == 'production');
 
   var stats = require('./stats');
   stats.init(email, db);
 
-  require('./auth').foo(app, passport, LocalStrategy, db, secure_random, mode == 'production');
+  require('./auth').foo(app, passport, LocalStrategy, db, secure_random, notifier, mode == 'production');
   
   var mySocket = require('./socket');
   mySocket.foo(io, passportSocketIo, secretKey, sessionStore, channels, changejs, jsdom, winston, mongo, db, secure_random, async, stats, notifier);

@@ -600,7 +600,8 @@
 				socket.emit('LengthMismatch', newText);
 			}
 
-			if ( !nodeTreesAreEqual(createNodeTree(msg[0]), lastStructure)  || msg[1] != old) {
+			var fromServer = createNodeTree(msg[0]);
+			if ( !nodeTreesAreEqual(fromServer, lastStructure)  || msg[1] != old) {
 
 				var pos = getCursor3();
 
@@ -613,14 +614,27 @@
 				$('#testArea')[0].outerHTML = msg[0];
 				setText($('#testArea')[0], msg[0], msg[1]);
 
-				console.log("from server:");
-				console.log(msg[0]);
-				console.log(msg[1]);
-				console.log("from us");
-				console.log(lastStructure.outerHTML);
-				console.log(old);
 
-				alert("got " + msg + " and it's different than "  + lastPush.innerHTML);
+				if (msg[1] == old) {
+					console.log("structure differed");
+					console.log("from server:");
+					console.log(msg[0]);
+					console.log("from us");
+					console.log(lastStructure.outerHTML);
+
+					console.log("diffs");
+					console.log(structureDifferences(el, fromServer));
+				}
+				else {
+					console.log("text differed");
+					console.log("from server:");
+					console.log(msg[1]);
+					console.log("from us");
+					console.log(old);
+				}
+
+				
+
 				setCursor3(pos);
 
 
@@ -854,28 +868,33 @@
 			
 			if (msg[key]) {
 				var node = getRange(msg[key][0]);
-				var range = document.createRange();
-				range.setStart(node[0], node[1]);
-				range.setEnd(node[0], node[1]);
+				if (node) {
+					var range = document.createRange();
+					range.setStart(node[0], node[1]);
+					range.setEnd(node[0], node[1]);
 
-				var span = document.createElement("span");
-				range.insertNode(span);
+					var span = document.createElement("span");
+					range.insertNode(span);
 
-				var rect = span.getBoundingClientRect();
+					var rect = span.getBoundingClientRect();
 
-				var containerRect = $('#testArea')[0].getBoundingClientRect();
+					var containerRect = $('#testArea')[0].getBoundingClientRect();
 
-				var left = rect.left - containerRect.left + $('#testArea')[0].scrollLeft;
-				var top  = rect.top - containerRect.top + $('#testArea')[0].scrollTop;
+					var left = rect.left - containerRect.left + $('#testArea')[0].scrollLeft;
+					var top  = rect.top - containerRect.top + $('#testArea')[0].scrollTop;
 
-				cursorPositions[key] = [left, top];
-				lastSize = [$('#testArea').width(), $('#testArea').outerHeight()];
+					cursorPositions[key] = [left, top];
+					lastSize = [$('#testArea').width(), $('#testArea').outerHeight()];
 
-				setCursorPosition(cursor, left, top, height);
+					setCursorPosition(cursor, left, top, height);
 
-				span.parentNode.removeChild(span);
+					span.parentNode.removeChild(span);
 
-				cursor.style.display = "";
+					cursor.style.display = "";
+				}
+				else {
+					cursor.style.display = "none";
+				}
 			}
 			else {
 				cursor.style.display = "none";

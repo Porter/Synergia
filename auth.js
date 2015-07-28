@@ -4,7 +4,7 @@ var bcrypt = require('bcrypt-nodejs');
 
 
 module.exports = {
-  foo: function (app, passport, LocalStrategy, db, secure_random, production) {
+  foo: function (app, passport, LocalStrategy, db, secure_random, notifier, production) {
 
 
     var collection = db.collection('g');
@@ -151,30 +151,73 @@ module.exports = {
       console.log("username: " + req.body.username);
       console.log("password: " + req.body.password);
 
+      if (!req.body.username || !req.body.password || !req.body.email) {
+        return res.redirect('/login?email=' + req.body.email + "&username=" + req.body.username + '&redirect=' + '/login');
+      }
+
       
-      var collection = db.collection('g');
-      collection.insert(
-        {
-          user:req.body.username,
-          password:bcrypt.hashSync(req.body.password),
-          hasUserName: true
-        },
+      var userInfo = {
+        username: req.body.username,
+        password: req.body.password,
+        email: req.body.email
+      };
 
-        function(err, result) {
-          if (err) { console.log(err); res.redirect("/"); return; }
 
-          passport.authenticate('local', function(err, user, info) {
-            req.login(user, function(err) {
-              if (err) { console.log(err); return (err); }
-              console.log("req.user: " + JSON.stringify(req.user));
-              return res.redirect('/');
-            });
-          })(req, res);
+      notifier.sendConfirmation(userInfo['email'], userInfo);
+      res.end("You now need to confirm your email, check you inbox");
+      return;
 
-        });
+
+      
     });
   
+    app.get('/confirm', function(req, res) {
+      var collection = db.collection('toBeConfirmed');
+      
 
+      collection.findOne({token:req.query.token}, function(err, reply) {
+        
+        var userInfo = reply.userInfo;
+
+        
+        var collection = db.collection('g');
+        collection.findAndModify(
+          {email: userInfo['email']},
+          [],
+          {
+            '$set' : {
+              user:userInfo['username'],
+              password:bcrypt.hashSync(userInfo['password']),
+              email: userInfo['email'],
+              hasUserName: true
+            }
+          },
+          {upsert: true, 'new':true},
+
+          function(err, result) {
+            if (err) { console.log(err); res.redirect("/"); return; }
+
+            req.logIn(result.value._id.toString(), function (err) {
+                if(!err){
+                    res.redirect('/');
+                }else{
+                    res.end(err.toString());
+                }
+            });
+
+            // passport.authenticate('local', function(err, user, info) {
+            //   req.login(user, function(err) {
+            //     if (err) { console.log(err); return (err); }
+            //     console.log("req.user: " + JSON.stringify(req.user));
+            //     return res.redirect('/');
+            //   });
+            // })(req, res);
+
+          });
+
+
+      });
+    });
   }
 };
 
