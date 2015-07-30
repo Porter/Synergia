@@ -1280,7 +1280,7 @@ function colorize(node, changes, col) {
 		var node = nodes[i][0];
 		var range = nodes[i][1];
 
-		console.log(node.outerHTML || node.textContent, JSON.stringify(range));
+		//console.log(node.outerHTML || node.textContent, JSON.stringify(range));
 		
 		if (getColor(node) != theColor) {
 			var text = node.textContent;

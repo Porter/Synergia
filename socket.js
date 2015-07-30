@@ -141,7 +141,7 @@ module.exports = {
       });
 
       socket.on('cur', function(msg) {
-        //msg = JSON.parse(msg);
+        msg = JSON.parse(msg);
         if (socket.doc) {
           var doc = socket.doc;
           documentChanger.emit(doc, [socket, {cursor:msg, documentId:doc}]);
@@ -150,12 +150,12 @@ module.exports = {
 
 
       socket.on('LengthMismatch', function(d) {
-        documentChanger.emit(socket.doc, {
+        documentChanger.emit(socket.doc, [socket, {
           customFunc:function() {
             console.log("fixing " + documents[socket.doc][1] + " to " + d);
             documents[socket.doc][1] = d;
-          }
-        });
+          }}]
+        );
       });
 
 

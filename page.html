@@ -676,6 +676,9 @@
 					console.log(msg[2]);
 					console.log("from us");
 					console.log(old);
+
+					console.log("diffs from us to server");
+					console.log(textChanges(old, msg[2]));
 				}
 
 				
@@ -698,7 +701,6 @@
 			}
 
 			$('#status')[0].style.backgroundColor = "green";
-			
 
 			console.log('resp ' + edit + " vs " + msg[3]);
 
@@ -725,12 +727,38 @@
 		function applyUpdate(msg) {
 			var pos = getCursor3();
 
-			var changes_ = msg[0];
+			var textChanges_ = JSON.parse(msg[0])[1];
 
 			$('#testArea')[0].outerHTML = msg[1];
 			setText($('#testArea')[0], msg[1], msg[2]);
 
 			old = msg[2];
+
+			var isPost = textChanges_[textChanges_.length-1];
+			for (var i = 0; i < textChanges_.length - 1; i++) {
+				var change = textChanges_[i];
+
+				for (var n = 0; n < pos.length; n++) {
+					var p = pos[n];
+					if (change[0] <= p[0]) {
+						if (change.length == 2) {
+							if (typeof change[1] == "string") {
+								p[0] += change[1].length;
+							}
+							else {
+								p[0] -= change[1];
+							}
+						}
+						else {
+							p[0] += change[1].length - change[2];
+						}
+
+						if (p[0] < change[0]) {
+							p[0] = change[0];
+						}
+					}
+				}
+			}
 			
 			setCursor3(pos);
 		}
@@ -743,7 +771,7 @@
 					console.log("got expected");
 				}
 				else {
-					alert("did'nt get expected");
+					alert("didn't get expected");
 					console.log("didn't get expecting");
 					console.log("expecting " + JSON.stringify(expecting));
 					console.log("got update with " + msg[3]);
@@ -768,7 +796,7 @@
 
 				structure = nodeTree($('#testArea')[0], true, false);
 
-				expecting = ['update', nextEdit(edit)];
+				expecting = [expecting[0], nextEdit(edit)];
 				
 				// todo check for changes here, otherwise they'll be forgotten,
 				// because:   changes_ = changes(old, val);
