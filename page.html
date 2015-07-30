@@ -227,7 +227,7 @@
 			</div><!-- /.container-fluid -->
 		</nav>
 
-		<div id="status" style="position: fixed; width: 50px; height: 50px; right: 0px; top 50px; background-color:green;"></div>
+		<div id="status" style="position: fixed; width: 50px; height: 50px; right: 0px; top 50px; background-color:green; display:none"></div>
 		
 		<div class="row">
 			<div class="col-xs-4">
@@ -285,6 +285,8 @@
 	</body>
 
 	<script type="text/javascript">
+
+		function e() { $('#status').css('display', ''); }
 
 		window.onerror = function(msg, url, line, col, error) {
 			var extra = !col ? '' : '\ncolumn: ' + col;
@@ -496,7 +498,8 @@
 		var timeOut = 100; // ms
 		
 		
-		var oldNodes, lastPush, lastStructure, preForm, from, oldCursor = [], userLookup, undefinedUsers = [], notifying = false;
+		var oldNodes, structure, text, lastPush, lastStructure, preForm, from, oldCursor = [], userLookup, undefinedUsers = [], notifying = false;
+		var edit, edits = {}, expecting;
 
 		var cursorPositions = {}, lastSize;
 		
@@ -510,6 +513,7 @@
 			var cursorChanged = false;
 
 			form2(el);
+			form(el);
 
 			if (!arrEquals(oldCursor, cursor)) {
 				cursorChanged = true;
@@ -520,8 +524,6 @@
 			var element = $('#testArea')[0];
 
 			if (val != oldNodes.innerHTML) {
-				console.log("old", oldNodes.innerHTML);
-				console.log("new", val);
 
 				changes_ = getNodeChanges(oldNodes, el, cursor);
 				console.log(JSON.stringify(changes_));
@@ -529,7 +531,9 @@
 
 				colorize($('#testArea')[0], changes_[1], color);
 
-				form($('#testArea')[0]);
+				form2(el);
+				form(el);
+
 
 
 
@@ -538,13 +542,42 @@
 				
 				old = $('#testArea')[0].textContent;
 				preForm = getNode();
-				form($('#testArea')[0]);
+				
 
 				oldNodes = getNode();
 				lastPush = getNode();
 				lastStructure = nodeTree(oldNodes, true, false);
 
 				lastChanges = changes_;
+
+				changes_.push(edit);
+
+				var newStructure = nodeTree(el, true, false);
+
+
+				var structurualChange = changes_[0];
+				if (structurualChange) {
+					structurualChange = [changes_[0][0], createNodeTree(changes_[0][1])];
+
+					setStructureDifferences(structure, structurualChange);
+					colorizeStructure(changes_[2], structure);
+					form2(structure, true);
+					form(structure);
+				}
+				
+
+				
+
+				if (!nodeTreesAreEqual(newStructure, structure)) {
+					console.log(el.outerHTML);
+					console.log(nodeTree(el, true, false));
+					alert('problem');
+					console.log(structurualChange);
+					console.log('problem. testArea is:');
+					console.log(newStructure);
+					console.log("structure");
+					console.log(structure);
+				}
 				
 				if (cursorChanged) {
 					socket.emit('inp_cur', JSON.stringify([ JSON.stringify(changes_), cursor]));
@@ -552,6 +585,7 @@
 				else {
 					socket.emit('inp', JSON.stringify(changes_));
 				}
+				expecting = ['resp', nextEdit(edit)];
 				$('#status')[0].style.backgroundColor = "red";
 			}
 			else {
@@ -579,19 +613,29 @@
 			socket.emit('init', documentId);
 		});
 
-		socket.on('resp', function(msg){
 
-			$('#status')[0].style.backgroundColor = "green";
-			msg = JSON.parse(msg);
+		function nextEdit(e) {
+			return (e+1)%10;
+		}
 
-			var structLen = structureLength(createNodeTree(msg[0]))
-			if (structLen != msg[1].length) {
-				console.log(msg[0] + " has length of " + structLen + " not " + msg[1].length);
+		function applyPreviousEdits() {
+			for (var i = nextEdit(edit); edits[i] != undefined; i = nextEdit(i)) {
+				var e = edits[i];
+				e['func'](e['msg']);
+
+				edits[i] = undefined;
+			}
+		}
+
+		function applyResp(msg) {
+			var structLen = structureLength(createNodeTree(msg[1]))
+			if (structLen != msg[2].length) {
+				console.log(msg[1] + " has length of " + structLen + " not " + msg[2].length);
 				alert("LengthMismatch");
 
-				var newText = msg[1];
-				if (structLen > msg[1].length) {
-					for (var i = 0 ; i < structLen - msg[1].length; i++) newText += " ";
+				var newText = msg[2];
+				if (structLen > msg[2].length) {
+					for (var i = 0 ; i < structLen - msg[2].length; i++) newText += " ";
 				}
 				else {
 					newText = newText.substring(0, structLen);
@@ -600,8 +644,8 @@
 				socket.emit('LengthMismatch', newText);
 			}
 
-			var fromServer = createNodeTree(msg[0]);
-			if ( !nodeTreesAreEqual(fromServer, lastStructure)  || msg[1] != old) {
+			var fromServer = createNodeTree(msg[1]);
+			if ( !nodeTreesAreEqual(fromServer, lastStructure)  || msg[2] != old) {
 
 				var pos = getCursor3();
 
@@ -611,24 +655,25 @@
 
 				socket.emit('clientError', JSON.stringify({from:from.innerHTML, to:preForm.innerHTML, afterForm:lastPush.innerHTML, got:got, change:lastChanges}));
 
-				$('#testArea')[0].outerHTML = msg[0];
-				setText($('#testArea')[0], msg[0], msg[1]);
+				$('#testArea')[0].outerHTML = msg[1];
+				setText($('#testArea')[0], msg[1], msg[2]);
 
 
-				if (msg[1] == old) {
+				if (msg[2] == old) {
 					console.log("structure differed");
 					console.log("from server:");
-					console.log(msg[0]);
+					console.log(msg[1]);
 					console.log("from us");
 					console.log(lastStructure.outerHTML);
 
 					console.log("diffs");
+					var el = document.getElementById('testArea');
 					console.log(structureDifferences(el, fromServer));
 				}
 				else {
 					console.log("text differed");
 					console.log("from server:");
-					console.log(msg[1]);
+					console.log(msg[2]);
 					console.log("from us");
 					console.log(old);
 				}
@@ -636,29 +681,94 @@
 				
 
 				setCursor3(pos);
-
-
 			}
+		}
+
+		socket.on('resp', function(msg){
+
+			msg = JSON.parse(msg);
+
+			if (expecting[0] == "resp" && expecting[1] == msg[3]) {
+				console.log("got expected");
+			}
+			else {
+				console.log("didn't get expecting");
+				console.log("expecting: " + JSON.stringify(expecting));
+				console.log("got a resp with " + msg[3]);
+			}
+
+			$('#status')[0].style.backgroundColor = "green";
+			
+
+			console.log('resp ' + edit + " vs " + msg[3]);
+
+			var next = nextEdit(edit);
+			if (msg[3] != next) {
+				console.log("out of order");
+				edits[msg[3]] = {msg:msg, func:applyResp};
+				return;
+			}
+
+			edit = msg[3];
+
+			applyResp(msg);
+
+			applyPreviousEdits();
+
 			  
-			old = msg[1];
+			old = msg[2];
 			setTimeout(check, timeOut);
+			expecting = ['update', nextEdit(edit)];
 		});
+
+
+		function applyUpdate(msg) {
+			var pos = getCursor3();
+
+			var changes_ = msg[0];
+
+			$('#testArea')[0].outerHTML = msg[1];
+			setText($('#testArea')[0], msg[1], msg[2]);
+
+			old = msg[2];
+			
+			setCursor3(pos);
+		}
 
 		socket.on('update', function(msg) {
 				
 				msg = JSON.parse(msg);
 
-				var pos = getCursor3();
+				if (expecting[0] == "update" && expecting[1] == msg[3]) {
+					console.log("got expected");
+				}
+				else {
+					alert("did'nt get expected");
+					console.log("didn't get expecting");
+					console.log("expecting " + JSON.stringify(expecting));
+					console.log("got update with " + msg[3]);
+				}
 
-				$('#testArea')[0].outerHTML = msg[0];
-				setText($('#testArea')[0], msg[0], msg[1]);
+				console.log('update ' + edit + " vs " + msg[3]);
 
-				old = msg[1];
-				
-				setCursor3(pos);
+				var next = nextEdit(edit);
+				if (msg[3] != next) {
+					edits[msg[3]] = {msg:msg, func:applyUpdate};
+					return;
+				}
+
+				edit = msg[3];
+
+				applyUpdate(msg);
+
+				applyPreviousEdits();
 
 				oldNodes = getNode();
 				lastStructure = nodeTree(oldNodes, true, false);
+
+				structure = nodeTree($('#testArea')[0], true, false);
+
+				expecting = ['update', nextEdit(edit)];
 				
 				// todo check for changes here, otherwise they'll be forgotten,
 				// because:   changes_ = changes(old, val);
@@ -673,15 +783,18 @@
 
 			userLookup = msg['userLookup'];
 
-			var text = msg['text'];
-			var struct = createNodeTree(msg['struct']);
+			text = msg['text'];
+			structure = createNodeTree(msg['struct']);
 			users = msg['currentUsers'];
 
-			console.log("struct");
-			console.log(struct);
+			edit = msg['start'];
+			expecting = ['update', nextEdit(edit)];
 
-			$('#testArea')[0].outerHTML = struct.outerHTML;
-			setText($('#testArea')[0], struct, text);
+			console.log("struct");
+			console.log(structure);
+
+			$('#testArea')[0].outerHTML = structure.outerHTML;
+			setText($('#testArea')[0], structure, text);
 
 			old = msg['text'];
 			color = msg['color'];

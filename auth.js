@@ -83,7 +83,7 @@ module.exports = {
             }
             console.log("user after update")
             console.log(user);
-            return done(err, user.value._id);
+            return done(null, user.value._id.toString());
           });
       })
     );
@@ -177,10 +177,14 @@ module.exports = {
 
       collection.findOne({token:req.query.token}, function(err, reply) {
         
+        console.log("userInfo", reply);
         var userInfo = reply.userInfo;
 
+        var collection = db.collection('toBeConfirmed');
+        collection.remove({_id:reply._id});
+
         
-        var collection = db.collection('g');
+        collection = db.collection('g');
         collection.findAndModify(
           {email: userInfo['email']},
           [],

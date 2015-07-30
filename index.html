@@ -7,32 +7,54 @@
 		<script type="text/javascript" src="/bootstrap/js/bootstrap.min.js"></script>
 		
 		<link href="/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-	</head>
 
-	<style>
+
+		<style>
+		
 
 			body{
-				background-color: rgb(15,4,87);
-				color:white;
+				background-color: rgb(214, 214, 214);
+				color:black;
 				font-size: 20px;
 				line-height: 40px;
 				letter-spacing: .5px;
-			}
-
-			form > input {
-				color: black;
+				font-family:"Papyrus";
 			}
 
 			#Heading {
+				width:40%;
 				background-color: rgb(121, 101, 141);
-				color:dte;
-				font-family: Lucida Console ;
-				padding: 20px;
+				color:white;
+				font-family: "Optima";
+				font-size: 50px;
+				padding-top: 20px;
+				padding-bottom: 20px;
+				margin-top: 100px;
+				border-radius: 1px 30px 1px 30px;
+
+			}
+
+			#createNew{
+				font-size: 18px;
+				font-family:"Courier";
+				padding-top:10px;
+				padding-bottom:10px;
+				background-color: rgb(15,4,87);
+				color:white;
+			}
+
+			.list{
+				
+			}
+
+			#docName{
+				color:white;
 			}
 
   
 		</style>
-	
+	</head>
+
 	<body>
 		
 		<center>
@@ -52,7 +74,7 @@
 
 			<form onsubmit="javascript:thing(); return false;">
 				<input id="name" type="text">
-				<input type="submit" value="CREATE NEW DOCUMENT">
+				<input type="submit" value="CREATE NEW">
 			</form>
 
 		</center>

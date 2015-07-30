@@ -46,30 +46,27 @@ exports.channels.prototype.emit = function(channelname, object)
 		//create the channel array
 		_this.channels[channelname] = [];
 		
-		_this.operatorFunction(object, function iterator()
-							   {
-							   //get the next element
-							   var next = _this.channels[channelname].shift();
-							   
-							   //if there is nothing todo anymore in this channel, clean it up
-							   if(next !== undefined)
-							   {
-							   // if this method has a domain, call it in the domain
-							   if(next.__domain){
-          var activeDomain = next.__domain;
-          delete next.__domain;
-							   
-          activeDomain.run(function(){
-						   _this.operatorFunction(next, iterator);
-						   });
-							   } else {
-          _this.operatorFunction(next, iterator);
-							   }
-							   }
-							   else
-							   {
-							   delete _this.channels[channelname];
-							   }
-							   });
+		_this.operatorFunction(object, function iterator() {
+		   //get the next element
+		   var next = _this.channels[channelname].shift();
+		   
+		   //if there is nothing todo anymore in this channel, clean it up
+		   if(next !== undefined) {
+				// if this method has a domain, call it in the domain
+			   if(next.__domain){
+		          var activeDomain = next.__domain;
+		          delete next.__domain;
+									   
+		          activeDomain.run(function(){
+				   _this.operatorFunction(next, iterator);
+				   });
+			   } else {
+		          _this.operatorFunction(next, iterator);
+			   }
+		   }
+		   else {
+			   delete _this.channels[channelname];
+		   }
+	   });
 	}
 }

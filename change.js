@@ -140,7 +140,7 @@ function setAttrs(element, dict) {
         element.setAttribute(i, dict[i]);
 }
 
-function form2(node) {
+function form2(node, isStructure) {
 	var children = node.childNodes;
 
 	for (var i = 0; i < children.length; i++) {
@@ -255,7 +255,8 @@ function form2(node) {
 			}
 
 			if (equalFontAttrs(fonts[n].attributes, fonts[n+1].attributes, true)) {
-				fonts[n].textContent += fonts[n+1].textContent;
+				if (isStructure) { fonts[n].textContent = "" + (parseInt(fonts[n].textContent) + parseInt(fonts[n+1].textContent)); }
+				else { fonts[n].textContent += fonts[n+1].textContent; }
 
 				child.removeChild(fonts[n+1]);
 				n--;
@@ -320,6 +321,7 @@ function form2(node) {
 }
 
 if (typeof exports != "undefined") exports.form = form;
+if (typeof exports != "undefined") exports.form2 = form2;
 
 
 function continuationLength(string1, pos1, string2, pos2) {
@@ -536,7 +538,7 @@ function nodeTreesAreEqual(nodeTree1, nodeTree2) { // comparing two nodeTrees
 		return nodeTree1.textContent == nodeTree2.textContent;
 	}
 
-	if ( !equalAttrs(nodeTree1.attributes, nodeTree2.attributes) ) return false;
+	if (  !equalFontAttrs(nodeTree1.attributes, nodeTree2.attributes) ) return false;
 
 	if (nodeTree1.childNodes.length != nodeTree2.childNodes.length) return false;
 
@@ -613,16 +615,22 @@ function structureDifferences(node, nodeTree, soFar) {
 }
 
 function setStructureDifferences(struct, differences) {
-	
+
+
 	var path = differences[0];
 	var newNodeTree = differences[1];
+	
+	if (path.length == 0) {
+		struct.innerHTML = newNodeTree.innerHTML;
+		return;
+	}
 	
 	for (var i = 0; i < path.length; i++) {
 		struct = struct.childNodes[path[i]];
 	}
 	
-	
 	struct.parentNode.replaceChild(newNodeTree, struct);
+
 }
 
 if (typeof exports != "undefined") exports.applyStructuralChanges = setStructureDifferences;
@@ -1170,7 +1178,7 @@ function nodesToColorize(node, changes) {
 	
 	var toColor = toColorize(changes);
 
-	console.log('toColor: ' + JSON.stringify(toColor));
+	//console.log('toColor: ' + JSON.stringify(toColor));
 	
 	var nodes = [];
 	for (var i = 0; i < toColor.length; i++) {
@@ -1320,7 +1328,7 @@ function colorizeStructure(nodesToColor, structure) {
 	var nodes = nodesToColor;
 	var theColor = color || "blue";
 	
-	console.log("colorizing " + nodes.length + " nodes");
+	//console.log("colorizing " + nodes.length + " nodes");
 	for (var i = 0; i < nodes.length; i++) {
 		var node = nodes[i][0];
 		var range = nodes[i][1];
