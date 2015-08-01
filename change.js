@@ -2,19 +2,20 @@ if (typeof exports != "undefined") exports.setDocument = function (doc) { docume
 if (typeof exports != "undefined") exports.setColor = function (col) { color = col; }
 
 function strip(node) {
-		if (node.nodeName.toLowerCase() == "#text") return document.createTextNode(node.textContent);
+	if (!node) return undefined;
+	if (node.nodeName.toLowerCase() == "#text") return document.createTextNode(node.textContent);
 
-		var cloned = document.createElement(node.nodeName.toLowerCase());
-		cloned.innerHTML = node.innerHTML;
+	var cloned = document.createElement(node.nodeName.toLowerCase());
+	cloned.innerHTML = node.innerHTML;
 
-		var children = cloned.childNodes;
-		for (var i = 0; i < children.length; i++) {
-			cloned.replaceChild(strip(children[i]), children[i]);
-		}
-
-		return cloned;
-
+	var children = cloned.childNodes;
+	for (var i = 0; i < children.length; i++) {
+		cloned.replaceChild(strip(children[i]), children[i]);
 	}
+
+	return cloned;
+
+}
 
 if (typeof exports != "undefined") {
 	exports.strip = strip;
@@ -47,14 +48,36 @@ function getColor(node, stopAt) {
 }
 
 
-
 function previousNode(node, stopAt) {
 	if (node.previousSibling != undefined) { return node.previousSibling; }
 	
 	node = node.parentNode;
 	if (node == stopAt) return;
 	
-	return previousNode(node);
+	return previousNode(node, stopAt);
+	
+}
+
+function rightMostTextNode(node) {
+	if (node.nodeName.toLowerCase() == "#text") return node;
+
+	var children = node.childNodes;
+	for (var i = children.length - 1; i >= 0; i--) {
+		var r = rightMostTextNode(children[i]);
+		if (r) return r;
+	}
+}
+
+function previousTextNode(node, stopAt) {
+	if (node.previousSibling != undefined) { 
+		var rightMost = rightMostTextNode(node.previousSibling);
+		if (rightMost) return rightMost;
+	}
+	
+	node = node.parentNode;
+	if (node == stopAt) { console.log("stopped"); return; }
+	
+	return previousTextNode(node, stopAt);
 	
 }
 
@@ -65,6 +88,28 @@ function nextNode(node, stopAt) {
 	if (node == stopAt) return;
 	
 	return nextNode(node);
+}
+
+function leftMostTextNode(node) {
+	if (node.nodeName.toLowerCase() == "#text") return node;
+
+	var children = node.childNodes;
+	for (var i = 0; i < children.length; i++) {
+		var l = leftMostTextNode(children[i]);
+		if (l) return l;
+	}
+}
+
+function nextTextNode(node, stopAt) {
+	if (node.nextSibling != undefined) { 
+		var leftMost = leftMostTextNode(node.nextSibling);
+		if (leftMost) return leftMost;
+	}
+	
+	node = node.parentNode;
+	if (node == stopAt) return;
+	
+	return nextTextNode(node, stopAt);
 }
 
 function isWellFormed(node, soFar) {
@@ -140,7 +185,7 @@ function setAttrs(element, dict) {
         element.setAttribute(i, dict[i]);
 }
 
-function form2(node, isStructure) {
+function form2(node, color, isStructure) {
 	var children = node.childNodes;
 
 	for (var i = 0; i < children.length; i++) {
@@ -161,9 +206,9 @@ function form2(node, isStructure) {
 
 		for (var n = 0; n < fonts.length; n++) {
 
-			/*console.log(child.outerHTML);
-			console.log("looking at ");
-			console.log(fonts[n].outerHTML);*/
+			//console.log(child.outerHTML);
+			//console.log("looking at ");
+			//console.log(fonts[n].outerHTML);
 
 			var font = fonts[n];
 
@@ -180,6 +225,27 @@ function form2(node, isStructure) {
 				continue;
 			}
 
+			if (font.childNodes.length == 0) {
+				child.removeChild(font);
+				n--;
+				continue;
+			}
+
+			if (isStructure && font.childNodes[0].textContent == "0") {
+				if (font.childNodes.length <= 2) {
+					if (font.childNodes.length == 2 && font.childNodes[1].childNodes[0] && font.childNodes[1].childNodes[0].nodeName.toLowerCase() != 'br') {
+						child.removeChild(font);
+						n--;
+						continue;
+					}
+				}
+				else {
+					child.removeChild(font);
+					n--;
+					continue;
+				}
+			}
+
 
 			var styleColor = font.style.color;
 			if (styleColor) {
@@ -189,6 +255,9 @@ function form2(node, isStructure) {
 					font.color = tinycolor(styleColor).toHexString();
 				}
 				font.style.color = "";
+			}
+			if (!font.color) {
+				font.color = color;
 			}
 
 			if (font.childNodes.length == 0) {
@@ -314,9 +383,32 @@ function form2(node, isStructure) {
 				}
 				break; // continue looking at this div. we added the pure div before this one, so no need to n--
 			}
+		}	
+	}
+
+	for (var i = 0; i < children.length; i++) {
+		var div = children[i];
+		var lastEl = div.childNodes[max(0, div.childNodes.length-1)];
+
+		if (lastEl == undefined || (lastEl.childNodes[0] && lastEl.childNodes[0].nodeName.toLowerCase() != "br")) {
+			var newFont = document.createElement('font');
+			newFont.color = color;
+
+			var newBr = document.createElement('br');
+
+			newFont.appendChild(newBr);
+
+			div.appendChild(newFont);
 		}
 
-		
+		if (div.childNodes.length == 1 && isStructure) {
+			var newFont = document.createElement('font');
+			newFont.color = color;
+			newFont.textContent = "0";
+
+			div.insertBefore(newFont, div.childNodes[0]);
+
+		}
 	}
 }
 
@@ -356,24 +448,23 @@ function findContinuation(string1, pos1, string2, pos2) {
 	
 }
 
-function nodeTree(node, keepAttrs, returnAsText) {
+function nodeTree(node, color, keepAttrs, returnAsText, isStructure) {
 	var first = node.textContent.slice();
 	
-	var tree = nodeTreeTesting(node, keepAttrs, returnAsText);
+	var tree = nodeTreeTesting(node, keepAttrs, isStructure);
+
 	
 	var second = node.textContent.slice();
 	
 	if (first != second) {
 		alert("went from " + first + " to " + second);
 	}
-	return tree;
+	return returnAsText ? tree.outerHTML : tree;
 }
 
 if (typeof exports != "undefined") exports.nodeTree = nodeTree;
 
-function nodeTreeTesting(node, keepAttrs, returnAsText) {
-	
-	if (returnAsText == undefined) returnAsText = true;
+function nodeTreeTesting(node, keepAttrs, isStructure) {
 	
 	var children = node.childNodes;
 	var clone = node.cloneNode();
@@ -408,12 +499,15 @@ function nodeTreeTesting(node, keepAttrs, returnAsText) {
 					
 					startNode.textContent += text;
 					
-					clone.appendChild(document.createTextNode("" + startNode.textContent.length));
+					if (isStructure) { clone.appendChild(document.createTextNode("" + startNode.textContent)); }
+					else { clone.appendChild(document.createTextNode("" + startNode.textContent.length)); }
 					
 					i = start + 1;
 				}
 				else {
-					clone.appendChild(document.createTextNode("" + node.childNodes[currentTextNodeChain[0]].textContent.length));
+					if (isStructure) { clone.appendChild(document.createTextNode("" + node.childNodes[currentTextNodeChain[0]].textContent)); }
+					else { clone.appendChild(document.createTextNode("" + node.childNodes[currentTextNodeChain[0]].textContent.length)); }
+					
 				}
 				currentTextNodeChain = [-1, 0];
 			}
@@ -424,7 +518,7 @@ function nodeTreeTesting(node, keepAttrs, returnAsText) {
 				clone.appendChild(clone2);
 			}
 			else {
-				clone.appendChild(nodeTree(child, keepAttrs, false));
+				clone.appendChild(nodeTreeTesting(child, keepAttrs, false));
 			}
 		}
 	}
@@ -446,12 +540,14 @@ function nodeTreeTesting(node, keepAttrs, returnAsText) {
 			
 			startNode.textContent += text;
 			
-			clone.appendChild(document.createTextNode("" + startNode.textContent.length));
+			if (isStructure) { clone.appendChild(document.createTextNode("" + startNode.textContent)); }
+			else { clone.appendChild(document.createTextNode("" + startNode.textContent.length)); }
 			
 			i = start + 1;
 		}
 		else {
-			clone.appendChild(document.createTextNode("" + node.childNodes[currentTextNodeChain[0]].textContent.length));
+			if (isStructure) { clone.appendChild(document.createTextNode("" + node.childNodes[currentTextNodeChain[0]].textContent)); }
+			else { clone.appendChild(document.createTextNode("" + node.childNodes[currentTextNodeChain[0]].textContent.length)); }
 		}
 		currentTextNodeChain = [-1, 0];
 
@@ -459,7 +555,7 @@ function nodeTreeTesting(node, keepAttrs, returnAsText) {
 
 	
 	if (!keepAttrs) removeAllAttrs(clone);
-	return returnAsText ? clone.outerHTML : clone;
+	return clone;
 }
 
 
@@ -531,22 +627,45 @@ function equalFontAttrs(attrs1, attrs2, ignoreID) {
 
 function nodeTreesAreEqual(nodeTree1, nodeTree2) { // comparing two nodeTrees
 	if (nodeTree1 == undefined || nodeTree2 == undefined) return nodeTree2 == nodeTree1;
-	
-	if (nodeTree1.nodeName.toLowerCase() != nodeTree2.nodeName.toLowerCase()) return false;
 
+	if (nodeTree1.nodeName.toLowerCase() != nodeTree2.nodeName.toLowerCase()) return false;
+	//console.log('1');
 	if (nodeTree1.nodeName.toLowerCase() == '#text') {
 		return nodeTree1.textContent == nodeTree2.textContent;
 	}
+	//console.log('2');
+	if (  !equalFontAttrs(nodeTree1.attributes, nodeTree2.attributes, true) ) return false;
+	//console.log('3');
 
-	if (  !equalFontAttrs(nodeTree1.attributes, nodeTree2.attributes) ) return false;
 
-	if (nodeTree1.childNodes.length != nodeTree2.childNodes.length) return false;
+	//if (nodeTree1.childNodes.length != nodeTree2.childNodes.length) return false;
 
-	for (var i = 0; i < nodeTree1.childNodes.length; i++) {
+	for (var i1 = 0, i2 = 0; i1 < nodeTree1.childNodes.length && i2 < nodeTree2.childNodes.length; i1++, i2++) {
 		
-		if (!nodeTreesAreEqual(nodeTree1.childNodes[i], nodeTree2.childNodes[i])) return false;
+		var child1 = nodeTree1.childNodes[i1];
+		var child2 = nodeTree2.childNodes[i2];
+
+		if (child1.nodeName.toLowerCase() == "font" && child1.textContent == "0") {
+			i2--;
+			continue;
+		}
+
+		if (child2.nodeName.toLowerCase() == "font" && child2.textContent == "0") {
+			i1--;
+			continue;
+		}
+
+		if (!nodeTreesAreEqual(child1, child2)) {
+			//console.log(child1, child2);
+			return false;
+		}
 	}
 	
+	if (i1 != nodeTree1.childNodes.length || i2 != nodeTree2.childNodes.length)  {
+		//console.log((i1 , nodeTree1.childNodes.length, i2, nodeTree2.childNodes.length));
+		return false;
+	}
+
 	return true;
 	
 }
@@ -575,6 +694,7 @@ function isDifferent(node, nodeTree) { // comparing nodes to NodeTrees
 	return false;
 	
 }
+
 
 function structureDifferences(node, nodeTree, soFar) {
 	soFar = soFar || [];
@@ -652,10 +772,10 @@ function removeAllAttrs(element) {
 		element.removeAttributeNode(element.attributes[i]);
 }
 
-function nodeTreeDifference(section1, section2, soFar, differences, length) {
+function structuralDifference(structure1, structure2, soFar, differences, length) {
 	
-	var children1 = section1.childNodes;
-	var children2 = section2.childNodes;
+	var children1 = structure1.childNodes;
+	var children2 = structure2.childNodes;
 
 	soFar = soFar || [];
 	differences = differences || [];
@@ -666,36 +786,30 @@ function nodeTreeDifference(section1, section2, soFar, differences, length) {
 		var child1 = children1[i1];
 		var child2 = children2[i2];
 		
-		
 		var attrs = getAttrs(child2);
-		
+
 		var pre = soFar.join("-");
 		if (soFar.length != 0) pre += "-";
-		
-		if (child2.id != prefix + pre + i2) {
 			
-			if (child2.nodeName.toLowerCase() == "#text" && child1.nodeName.toLowerCase() == "#text") {
-				// let it be
-			}
-			else if (child2.nodeName.toLowerCase() != "#text" && child1.nodeName.toLowerCase() != "#text") {
-				differences.push(['dd', soFar, i2]);
-				differences.push(['ad', soFar, max(0, i2-1), child2.nodeName.toLowerCase(), nodeTree(child2, true), attrs]);
-			}
-			else if (child2.nodeName.toLowerCase() == "#text") {
-				differences.push(['dd', soFar, i2]);
-				differences.push(['ad', soFar, max(0, i2-1), "", nodeTree(child2, true), attrs]);
-			}
-			else { // child1 is a text node
-				differences.push(['dd', soFar, i2]);
-				differences.push(['ad', soFar, max(0, i2-1), child2.nodeName.toLowerCase(), nodeTree(child2, true), attrs]);
-			}
+		var mathcingId = child2.id != prefix + pre + i2;
 
-			
+		if (child2.nodeName.toLowerCase() == "#text" && child1.nodeName.toLowerCase() == "#text") {
+			if (child2.textContent != child1.textContent) {
+				var diff = parseInt(child2.textContent) - parseInt(child1.textContent);
+				differences.push(['cl', soFar, i2, diff]);
+			}
 		}
-		else {
-			soFarCopy = soFar.slice();
-			soFarCopy.push(i2);
-			nodeTreeDifference(child1, child2, soFarCopy, differences, length);
+		else if (child2.nodeName.toLowerCase() != "#text" && child1.nodeName.toLowerCase() != "#text") {
+			differences.push(['dd', soFar, i2]);
+			differences.push(['ad', soFar, max(0, i2-1), child2.nodeName.toLowerCase(), nodeTree(child2, true), attrs]);
+		}
+		else if (child2.nodeName.toLowerCase() == "#text") {
+			differences.push(['dd', soFar, i2]);
+			differences.push(['ad', soFar, max(0, i2-1), "", nodeTree(child2, true), attrs]);
+		}
+		else { // child1 is a text node
+			differences.push(['dd', soFar, i2]);
+			differences.push(['ad', soFar, max(0, i2-1), child2.nodeName.toLowerCase(), nodeTree(child2, true), attrs]);
 		}
 		
 		length += child2.textContent.length;
@@ -740,6 +854,328 @@ function nodeTreeDifference(section1, section2, soFar, differences, length) {
 	return differences;
 }
 
+function getText(node) {
+	var divs = node.childNodes;
+	var text = "";
+	for (var i = 0 ; i < divs.length; i++) {
+		text += divs[i].textContent;
+		if (i != divs.length-1) text += "\n";
+	}
+	return text;
+}
+
+function nodeAt(pos, node, isStructure) {
+	var len = pos;
+
+	var children = $('#testArea')[0].childNodes;
+	if (node) children = node.childNodes;
+
+	for (var i = 0; i < children.length; i++) {
+		var child = children[i];
+
+		var textLength;
+		if (isStructure) { textLength = structureLength(child); }//console.log(strip(child), " is ", textLength);}
+		else { textLength = child.textContent.length; }
+
+		len -= textLength;
+		//console.log("len is now", len);
+
+		if (len <= 0) {
+			len += textLength;
+			
+			if (child.nodeName.toLowerCase() == "#text") return [child, len];
+			return nodeAt(len, child, isStructure);
+
+		}
+	}
+}
+
+function _applyNewLineToStructure(structure, position, color, isPost) {
+	var node = nodeAt(position, structure, true);
+	if (!node && isPost) {
+		node = nodeAt(position-1, structure, true);
+		node[1]++;
+	}
+	if (node) {
+		var font = node[0].parentNode;
+
+		var div = node[0].parentNode.parentNode;
+
+		var aboveFonts = [], belowFonts = [];
+
+		var leftSide = node[1];
+		var rightSide = parseInt(node[0].textContent) - leftSide;
+
+		node[0].textContent = "" + leftSide;
+		if (leftSide == 0) {
+			//font.appendChild(document.createElement('br'));
+		}
+
+		var right = font.cloneNode();
+		right.textContent = rightSide;
+
+		belowFonts.push(right);
+
+		var after = node[0].nextSibling;
+		while (after) {
+			belowFonts.push(after);
+
+			var next = after.nextSibling;
+
+			node[0].parentNode.removeChild(after);
+
+			after = next;
+		}
+
+		var newDiv = document.createElement('div');
+		for (var i = 0; i < belowFonts.length; i++) {
+			newDiv.appendChild(belowFonts[i]);
+		}
+
+		var newFont = document.createElement('font');
+		newFont.color = color;
+
+		var newBr = document.createElement('br');
+
+		newFont.appendChild(newBr);
+
+		newDiv.appendChild(newFont);
+
+		var parentDiv = div.parentNode;
+
+		parentDiv.insertBefore(newDiv, div.nextSibling);
+	}
+	else {
+		console.warn("nodeAt returned null for structure:");
+		console.warn(structure);
+		console.warn("and new line position " + position);
+	}
+}
+
+
+function _removeNewLineFromStructure(structure, position) {
+
+	var removing = nodeAt(position, structure, true);
+
+	if (removing[1] != parseInt(removing[0].textContent)) {
+		console.warn("removing a newline, but the position we got isn't the end of a node");
+		console.warn(removing[0], removing[1]);
+	}
+
+	var toJoin1 = removing[0].parentNode.parentNode, toJoin2 = removing[0].parentNode.parentNode.nextSibling;
+
+	console.log(strip(toJoin1), strip(toJoin2));
+
+	var children1 = toJoin1.childNodes;
+	toJoin1.removeChild(children1[children1.length - 1]); // remove the br at the end of every div
+
+	var children2 = toJoin2.childNodes;
+	for (var i = 0; i < children2.length; i++) {
+		toJoin1.appendChild(toJoin2.removeChild(children2[i]));
+	}
+
+	toJoin2.parentNode.removeChild(toJoin2);
+}
+
+function _applyAdditionToStructure(structure, originalText, addition, color, isPost) {
+
+	addition = addition.slice();
+
+	var newLineCount = 0;
+	for (var i = 0; i < addition[0]; i++) {
+		if (originalText.charAt(i) == '\n') newLineCount++;
+	}
+
+	addition[0] -= newLineCount;
+
+	var textAdditions = addition[1].split('\n'), additions = [];
+
+	var offset = 0;
+	for (var i = 0; i < textAdditions.length; i++) {
+		additions.push([addition[0] + offset, textAdditions[i]]);
+		offset += textAdditions[i].length;
+	}
+
+	for (var i = 0; i < additions.length; i++) {
+
+		addition = additions[i];
+
+		if (i != 0) {
+			_applyNewLineToStructure(structure, addition[0], color, isPost);
+		}
+
+		var node = nodeAt(addition[0], structure, true);
+		if (!node && isPost) {
+			node = nodeAt(addition[0]-1, structure, true);
+		}
+		if (node) {
+			var positionInNode = node[1];
+			node = node[0];
+
+			var parentNode = node.parentNode;
+
+			console.log('adding after "' + originalText.charAt(addition[0] + newLineCount - 1) + '"');
+
+
+			console.log(addition[0], strip(structure));
+			console.log(nodeAt(addition[0], structure, true));
+			console.log(nodeAt(addition[0]-1, structure, true));
+			if (positionInNode == parseInt(node.textContent)) {
+				var movedAhead = 0;
+				while (originalText.charAt(addition[0] + newLineCount - 1 + movedAhead) == '\n') {
+					console.log("going forwar from ", strip(node));
+					node = nextTextNode(node) || node;
+					console.log("to ", strip(node));
+					console.log(originalText.substring(addition[0] + newLineCount -1 +movedAhead));
+					movedAhead--;
+				}
+				console.log(originalText.charAt(addition[0] + newLineCount - 1 + movedAhead));
+			}
+			else { console.log('efasdf")', isPost, positionInNode); }
+
+
+			if (color != parentNode.color) {
+				var nodeLength = parseInt(node.textContent);
+
+				var leftSide = positionInNode;
+				var rightSide = nodeLength - leftSide;
+				var middle = addition[1].length;
+
+
+				node.textContent = "" + leftSide;
+				
+				var middleFont = document.createElement('font');
+				middleFont.color = color;
+				middleFont.textContent = "" + middle;
+
+				var rightFont = document.createElement('font');
+				rightFont.color = parentNode.color;
+				rightFont.textContent = "" + rightSide;
+
+				parentNode.insertBefore(rightFont, node.nextSibling);
+				parentNode.insertBefore(middleFont, node.nextSibling);
+
+			}
+			else { 
+				node.textContent = "" + (parseInt(node.textContent) + addition[1].length);
+
+			}
+
+		}
+		else {
+			console.warn("nodeAt returned null for structure:");
+			console.warn(structure);
+			console.warn("and addition");
+			console.warn(addition);
+		}
+	}
+}
+
+function _applyDeletionToStructure(structure, originalText, originalTextOffset, deletion, color, isPost) {
+
+	console.log(strip(structure));
+	deletion = deletion.slice();
+	var newLineCount = 0;
+	for (var i = 0; i < deletion[0]; i++) {
+		if (originalText.charAt(i) == '\n') newLineCount++;
+	}
+
+	var deleting = originalText.substring(deletion[0] - originalTextOffset, (deletion[0] - originalTextOffset) + deletion[1])
+	var textDeletions = deleting.split('\n'), deletions = [];
+
+	for (var i = 0; i < textDeletions.length; i++) {
+		deletions.push([deletion[0], textDeletions[i].length]);
+	}
+
+	
+	var offset = 0;
+	for (var i = 0; i < deletions.length; i++) {
+
+		var deletion = deletions[i];
+		//console.log("deleting " + JSON.stringify(deletion));
+		var deleting = originalText.substring(deletion[0] - originalTextOffset, (deletion[0] - originalTextOffset) + deletion[1]);
+		//console.log("deleting text" + deleting);
+
+		if (i != 0) {
+			//console.log("removing newLine");
+			_removeNewLineFromStructure(structure, deletions[i-1][0] - newLineCount);
+			//console.log("finshed removing newLine");
+		}
+
+		var node = nodeAt(deletion[0] - newLineCount, structure, true);
+		var toDelete = deletion[1];
+
+
+		console.log("deleting", deletion, node[0], node[1]);
+		var positionInNode;
+		if (node) {
+			positionInNode = node[1];
+			node = node[0];
+		}
+
+		offset += toDelete;
+
+		while (toDelete > 0) {
+			if (node) {
+				console.log(strip(node));
+				var nodeAmount = parseInt(node.textContent) - positionInNode;
+
+				if (nodeAmount > toDelete) {
+					node.textContent =  "" + (positionInNode + (nodeAmount - toDelete));
+					toDelete = 0;
+				}
+				else {
+					toDelete -= nodeAmount;
+					node.textContent = "" + positionInNode;
+					var next = nextTextNode(node, structure);
+
+					// if (node.textContent == "0") {
+					// 	node.parentNode.removeChild(node);
+					// }
+
+					node = next;
+				}
+
+				positionInNode = 0;
+			}
+			else {
+				console.warn("nodeAt returned null for structure:");
+				console.warn(structure);
+				console.warn("and deletion");
+				console.warn(deletion);
+				break;
+			}
+		}
+	}
+	
+}
+
+function applyTextChangesToStructure(structure, originalText, textChanges_, color) {
+	var isPost = textChanges_[textChanges_.length - 1];
+
+
+	var originalTextOffset = 0;
+	for (var i = 0; i < textChanges_.length - 1; i++) {
+		var textChange_ = textChanges_[i];
+
+		if (textChange_.length == 2){
+			if (typeof textChange_[1] == "string") {
+				_applyAdditionToStructure(structure, originalText, textChange_, color, isPost && i == textChanges_.length - 2);
+				originalTextOffset += textChange_[1].length;
+			}
+			else {
+				_applyDeletionToStructure(structure, originalText, originalTextOffset, textChange_, color, isPost && i == textChanges_.length - 2);
+				originalTextOffset -= textChange_[1];
+			}
+		}
+		else {
+			_applyDeletionToStructure(structure, originalText, originalTextOffset, [textChange_[0], textChange_[2]], color);
+			_applyAdditionToStructure(structure, originalText, [textChange_[0], textChange_[1]], color);
+
+			originalTextOffset += textChange_[1].length - textChange_[2];
+		}
+	}
+}
 
 function getNodeChanges(node1, node2, cursor) {
 	var node1 = node1 || $('#section1')[0];
@@ -755,42 +1191,45 @@ function getNodeChanges(node1, node2, cursor) {
 	var textChanges_ = changes(node1, node2);
 
 	var textContent = node2.textContent, textContentLength = textContent.length;
-	for (var i = 0; i < textChanges_.length; i++) {
-		var textChange = textChanges_[i];
 
-		if (textChange.length == 2 && typeof textChange[1] == "string") {
+	if (cursor) {
+		for (var i = 0; i < textChanges_.length; i++) {
+			var textChange = textChanges_[i];
 
-			var incrs = [-textChange[1].length, textChange[1].length];
+			if (textChange.length == 2 && typeof textChange[1] == "string") {
 
-			var range = [];
-			for (var n = 0; n < incrs.length; n++) {
-				var incr = incrs[n];
+				var incrs = [-textChange[1].length, textChange[1].length];
 
-				for (var pos = textChange[0]; true; pos += incr) {
+				var range = [];
+				for (var n = 0; n < incrs.length; n++) {
+					var incr = incrs[n];
 
-					if (pos < 0 || pos >= textContentLength) {
-						range.push(pos - incr);
-						break;
-					}
+					for (var pos = textChange[0]; true; pos += incr) {
 
-					var str = textContent.substring(pos, pos + textChange[1].length);
+						if (pos < 0 || pos >= textContentLength) {
+							range.push(pos - incr);
+							break;
+						}
 
-					if (str != textChange[1] ) {
-						range.push(pos - incr);
-						break;
+						var str = textContent.substring(pos, pos + textChange[1].length);
+
+						if (str != textChange[1] ) {
+							range.push(pos - incr);
+							break;
+						}
 					}
 				}
-			}
-			range.push(i);
+				range.push(i);
 
-			if (range[0] != range[1]) {
-				var c = cursor[0][0] - 1;
-				if (c >= range[0] && c <= range[1]) {
-					if (range[2] == textChanges_.length - 2) {
-						textChanges_[textChanges_.length - 1] = c == textContentLength - 1 ? 1 : 0;
+				if (range[0] != range[1]) {
+					var c = cursor[0][0] - 1;
+					if (c >= range[0] && c <= range[1]) {
+						if (range[2] == textChanges_.length - 2) {
+							textChanges_[textChanges_.length - 1] = c == textContentLength - 1 ? 1 : 0;
+						}
+						textChange[0] = c;
+
 					}
-					textChange[0] = c;
-
 				}
 			}
 		}
@@ -853,6 +1292,8 @@ function structureLength(struct) {
 }
 
 function setText(node, structure, text, offset) {
+
+	text = text.replace(/\n/g, '');
 	
 	if (typeof structure == "string") structure = createNodeTree(structure);
 	
@@ -973,18 +1414,10 @@ function changes(parent1, parent2) {
 	var changes = [];
 	
 	var nodes1 = parent1.childNodes;
-	var text1 = nodes1.length == 0 ? "" : nodes1[0].parentNode.textContent;
+	var text1 = nodes1.length == 0 ? "" : getText(parent1);
 	
 	var nodes2 = parent2.childNodes;
-	var text2 = nodes2.length == 0 ? "" : nodes2[0].parentNode.textContent;
-	
-
-	for (var pos1 = text1.length-1, pos2 = text2.length-1; pos1 >= 0 && pos2 >= 0; pos1--, pos2--) {
-		if (text1.charAt(pos1) != text2.charAt(pos2)) break;
-	}
-
-	text1 = text1.substring(0, pos1+1);
-	text2 = text2.substring(0, pos2+1);
+	var text2 = nodes2.length == 0 ? "" : getText(parent2);
 
 	changes = textChanges(text1, text2);
 	
@@ -995,7 +1428,14 @@ function changes(parent1, parent2) {
 
 function textChanges(val1, val2) {
 	var changes = [];
-	
+
+	for (var pos1 = val1.length-1, pos2 = val2.length-1; pos1 >= 0 && pos2 >= 0; pos1--, pos2--) {
+		if (val1.charAt(pos1) != val2.charAt(pos2)) break;
+	}
+
+	val1 = val1.substring(0, pos1+1);
+	val2 = val2.substring(0, pos2+1);
+
 	for (var pos1 = 0, pos2 = 0; pos1 < val1.length && pos2 < val2.length;) {
 		
 		var ch1 = val1[pos1];
@@ -1221,8 +1661,7 @@ function nodesToColorizeHelper(node, range, len, nodesInRange, soFar) { // retur
 	if ( (range[0] >= len && range[0] < len + node.textContent.length) || (range[1] > len && range[1] <= len + node.textContent.length) ) {
 		
 		if (getColor(node) != theColor) {
-			var repr = [node, [max(0, range[0] - len), min(node.textContent.length, range[1] - range[0])], soFar];
-			console.log(node.outerHTML || node.textContent, " is " + JSON.stringify(soFar));
+			var repr = [0, [max(0, range[0] - len), min(node.textContent.length, range[1] - range[0])], soFar];
 			nodesInRange.push(repr);
 		}
 		
@@ -1274,6 +1713,18 @@ function colorize(node, changes, col) {
 	var nodes = nodesToColorize(node, changes);
 	
 	var theColor = col || color || "black";
+
+	for (var i = 0; i < nodes.length; i++) {
+		toColor = nodes[i];
+		
+		var location = toColor[2];
+		
+		for (var n = 0; n < location.length; n++) {
+			node = node.childNodes[location[n]];
+		}
+		
+		toColor[0] = node;
+	}
 	
 
 	for (var i = 0; i < nodes.length; i++) {
@@ -1309,7 +1760,7 @@ function colorize(node, changes, col) {
 }
 
 
-function colorizeStructure(nodesToColor, structure) {
+function colorizeStructure(nodesToColor, structure, Color) {
 	
 	for (var i = 0; i < nodesToColor.length; i++) {
 		toColor = nodesToColor[i];
@@ -1326,14 +1777,12 @@ function colorizeStructure(nodesToColor, structure) {
 	}
 	
 	var nodes = nodesToColor;
-	var theColor = color || "blue";
+	var theColor = Color || color || "blue";
 	
 	//console.log("colorizing " + nodes.length + " nodes");
 	for (var i = 0; i < nodes.length; i++) {
 		var node = nodes[i][0];
 		var range = nodes[i][1];
-
-		console.log(node.outerHTML || node.textContent, JSON.stringify(range));
 		
 		var parent = node.parentNode;
 		

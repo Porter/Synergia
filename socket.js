@@ -422,10 +422,14 @@ module.exports = {
       var doc = documents[documentId];
 
 
+      var col = colors[ doc[3][socket.request.user]['color']%colors.length ];
       changejs.setDocument(doc[0].parentWindow.window.document);
-      changejs.setColor(colors[ doc[3][socket.request.user]['color'] ]);
+      changejs.setColor(col);
 
-      //console.log("server: " + doc[8]['start'] + "; client: " + changes[3]);
+      var serverStart = doc[8]['start'], clientStart = changes[3];
+      if (serverStart != clientStart) {
+        console.log("server: " + serverStart + "; client: " + clientStart);
+      }
 
       doc[8]['start'] = (doc[8]['start']+1)%10;
 
@@ -440,7 +444,7 @@ module.exports = {
       changejs.colorizeStructure(changes[2], doc[0].parentWindow.window.document.getElementById('testArea'));
 
 
-      changejs.form2(doc[0].parentWindow.window.document.getElementById('testArea'), true);
+      changejs.form2(doc[0].parentWindow.window.document.getElementById('testArea'), col, true);
       changejs.form(doc[0].parentWindow.window.document.getElementById('testArea'));
 
 
@@ -448,7 +452,7 @@ module.exports = {
       documents[documentId][1] = changejs.applyTextChanges(doc[1], changes[1]);
       //console.log("gets us: " + documents[documentId][1]);
 
-      var thing = [msg, doc[0].parentWindow.window.document.getElementById('testArea').outerHTML, doc[1], doc[8]['start']];
+      var thing = [msg, doc[0].parentWindow.window.document.getElementById('testArea').outerHTML, doc[1], doc[8]['start'], colors[ doc[3][socket.request.user]['color']%colors.length ]];
 
       socket.emit('resp', JSON.stringify(thing));
       socket.broadcast.to(socket.doc).emit('update', JSON.stringify(thing));
