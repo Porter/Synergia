@@ -953,7 +953,11 @@ function nodeAtStructure(pos, node, isRoot) {
 
 function _applyNewLineToStructure(structure, position, color, isPost) {
 	var node = nodeAtStructure(position, structure);
+
+	console.log(position + " of ", strip(structure));
+	console.log(" gives us ", strip(node[0]), node[1]);
 	if (!node && isPost) {
+		console.log("node is null");
 		node = nodeAtStructure(position-1, structure);
 	}
 	if (node) {
@@ -1096,7 +1100,12 @@ function _applyAdditionToStructure(structure, originalText, addition, color, isP
 		console.log(addition);
 
 		if (i != 0) {
-			_applyNewLineToStructure(structure, additions[i-1][0], color, isPost);
+			console.log(JSON.stringify(additions[i-1]));
+
+			var addedNewLineLastTime = i > 1;
+			var lengthExtra = addedNewLineLastTime ? 1 : 0;
+
+			_applyNewLineToStructure(structure, additions[i-1][0] + additions[i-1][1].length - lengthExtra, color, isPost);
 
 			originalText = originalText.substring(0, addition[0]) +  '\n' + originalText.substring(addition[0]);
 			addition[0]++;
@@ -1276,8 +1285,8 @@ function applyTextChangesToStructure(structure, originalText, textChanges_, colo
 	}
 
 	if (originalText != finalText) {
-		alert('text problem 2');
-		console.log('text problem');
+		if (alert) alert('text problem 2');
+		console.log('text problem 2');
 		console.log(originalText);
 		console.log(finalText);
 	}

@@ -657,10 +657,6 @@
 
 				socket.emit('clientError', JSON.stringify({from:from.innerHTML, to:preForm.innerHTML, afterForm:lastPush.innerHTML, got:got, change:lastChanges}));
 
-				$('#testArea')[0].outerHTML = msg[1];
-				setText($('#testArea')[0], msg[1], msg[2]);
-
-
 				if (msg[2] == text) {
 					console.log("structure differed");
 					console.log("from server:");
@@ -682,6 +678,14 @@
 					console.log("diffs from us to server");
 					console.log(textChanges(text, msg[2], $('#testArea')[0], pos));
 				}
+
+
+				$('#testArea')[0].outerHTML = msg[1];
+				setText($('#testArea')[0], msg[1], msg[2]);
+
+				form2(structure, msg[4], true);
+				form(structure);
+
 
 				oldNodes = getNode();
 				structure = nodeTree($('#testArea')[0], color, true, false);
@@ -889,6 +893,16 @@
 			var len = structureLength(structure) + max(0, structure.childNodes.length - 1);
 			if (len != text.length) {
 				alert('length mismatch on init');
+
+				var newText = msg['text'];
+				if (len > newText.length) {
+					for (var i = 0 ; i < len - newText.length; i++) newText += " ";
+				}
+				else {
+					newText = newText.substring(0, len);
+				}
+
+				socket.emit('LengthMismatch', newText);
 			}
 
 			edit = msg['start'];
