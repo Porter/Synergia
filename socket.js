@@ -124,7 +124,7 @@ module.exports = {
       
 
       socket.on('inp', function(msg) {
-        //console.log("got msg" + msg);
+        console.log("got msg" + msg + " from user " + socket.request.user);
         if (socket.doc) {
           var doc = socket.doc;
           documentChanger.emit(doc, [socket, {msg:msg, documentId:doc}]);
@@ -135,7 +135,7 @@ module.exports = {
         msg = JSON.parse(msg);
         if (socket.doc) {
           var doc = socket.doc;
-          //console.log("got msg" + msg[0]);
+          console.log("got msg" + msg[0] + " from user " + socket.request.user);
           documentChanger.emit(doc, [socket, {msg:msg[0], documentId:doc, cursor:msg[1]}]);
         }
       });

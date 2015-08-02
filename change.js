@@ -232,8 +232,8 @@ function form2(node, color, isStructure) {
 			}
 
 			if (isStructure && font.childNodes[0].textContent == "0") {
-				if (font.childNodes.length <= 2) {
-					if (font.childNodes.length == 2 && font.childNodes[1].childNodes[0] && font.childNodes[1].childNodes[0].nodeName.toLowerCase() != 'br') {
+				if (fonts.length <= 2) {
+					if (fonts.length == 2 && fonts[1].childNodes[0] && fonts[1].childNodes[0].nodeName.toLowerCase() != 'br') {
 						child.removeChild(font);
 						n--;
 						continue;
@@ -670,7 +670,36 @@ function nodeTreesAreEqual(nodeTree1, nodeTree2) { // comparing two nodeTrees
 	
 }
 
+function strippedNodeTreesAreEqual(nodeTree1, nodeTree2) {
+	var children1 = nodeTree1.children;
+	var children2 = nodeTree2.children;
 
+	if (children1.length != children2.length) return false;
+
+	for (var i = 0; i < children1.length; i++) {
+		var fonts1 = children1[i];
+		var fonts2 = children2[i];
+
+		for (var n1 = 0, n2 = 0; n1 < fonts1.childNodes.length - 1 && n2 < fonts2.childNodes.length - 1; n1++, n2++) { //ignore the br at the end
+			var font1 = fonts1.childNodes[n1];
+			var font2 = fonts2.childNodes[n2];
+
+			if (font1.textContent == "0") {
+				n2--;
+				continue; //skip this one
+			}
+			if (font2.textContent == "0") {
+				n1--;
+				continue;
+			}
+
+			if (font1.textContent != font2.textContent) return false;
+			if (font1.color != font2.color) return false;
+		}
+	}
+
+	return true;
+}
 
 
 function isDifferent(node, nodeTree) { // comparing nodes to NodeTrees
@@ -1002,16 +1031,18 @@ function _removeNewLineFromStructure(structure, position) {
 	var goingToBeSizeOftoJoin1 = toJoin1.childNodes.length + children2.length;
 
 	console.log()
-	while (children2.length > 0) {
+	while (children2.length > 1) {
 		var t = toJoin2.removeChild(children2[0]);
 
 		if (t.childNodes.length == 1 && t.childNodes[0].nodeName.toLowerCase() == "#text" && t.textContent == "0" && goingToBeSizeOftoJoin1 > 2) {
 			continue;
 		}
 
-		console.log("addint to toJoin1", strip(t));
+		console.log("adding to toJoin1", strip(t));
 		toJoin1.appendChild(t);
 	}
+	console.log("addint to toJoin1", strip(br));
+	toJoin1.appendChild(br);
 
 	//toJoin1.appendChild(br);
 
@@ -1058,7 +1089,6 @@ function _applyAdditionToStructure(structure, originalText, addition, color, isP
 			console.log('adding after "' + originalText.charAt(addition[0] - 1) + '"');
 
 
-			console.log(addition[0], strip(structure));
 			console.log(nodeAtStructure(addition[0], structure));
 			// if (positionInNode == parseInt(node.textContent)) {
 			// 	var movedAhead = 0;	
@@ -1156,7 +1186,6 @@ function _applyDeletionToStructure(structure, originalText, deletion, color, isP
 		while (toDelete > 0) {
 			if (node) {
 				var nodeAmount = parseInt(node.textContent) - positionInNode;
-				console.log("remvoing " + toDelete + "from ", strip(node), "starting at " + positionInNode);
 
 				if (nodeAmount > toDelete) {
 					node.textContent =  "" + (positionInNode + (nodeAmount - toDelete));
@@ -1241,77 +1270,8 @@ function getNodeChanges(node1, node2, cursor) {
 	//console.log(node1);
 	//console.log("node2 tree: " + nodeTree(node2, true, false).outerHTML);
 	
-	var textChanges_ = changes(node1, node2);
-
-	var textContent = getText(node2), textContentLength = textContent.length;
-
-	if (cursor) {
-		var cursor_ = cursor.slice();
-
-
-		console.log("b4", JSON.stringify(cursor_));
-		for (var i = 0; i < cursor_.length; i++) {
-			var curs = cursor_[i].slice();
-
-			var divs = node2.children, count = 0, newLineCount = 0;
-			for (var n = 0; n < divs.length; n++) {
-				count += divs[n].textContent.length;
-
-				if (count < curs[0]) newLineCount++;
-				else break;
-			}
-			curs[0] += newLineCount;
-
-			cursor_[i] = curs;
-		}
-
-		console.log("after", JSON.stringify(cursor_));
-
-
-
-		for (var i = 0; i < textChanges_.length; i++) {
-			var textChange = textChanges_[i];
-
-			if (textChange.length == 2 && typeof textChange[1] == "string") {
-
-				var incrs = [-textChange[1].length, textChange[1].length];
-
-				var range = [];
-				for (var n = 0; n < incrs.length; n++) {
-					var incr = incrs[n];
-
-					for (var pos = textChange[0]; true; pos += incr) {
-
-						if (pos < 0 || pos >= textContentLength) {
-							range.push(pos - incr);
-							break;
-						}
-
-						var str = textContent.substring(pos, pos + textChange[1].length);
-
-						if (str != textChange[1] ) {
-							range.push(pos - incr);
-							break;
-						}
-					}
-				}
-				range.push(i);
-
-				if (range[0] != range[1]) {
-					var c = cursor_[0][0] - 1;
-					if (c >= range[0] && c <= range[1]) {
-						if (range[2] == textChanges_.length - 2) {
-							textChanges_[textChanges_.length - 1] = c == textContentLength - 1 ? 1 : 0;
-						}
-						console.log(JSON.stringify(cursor_));
-						console.log("changeing from ", JSON.stringify(textChange[0]), " to ", JSON.stringify(c));
-						textChange[0] = c;
-
-					}
-				}
-			}
-		}
-	}
+	var textChanges_ = changes(node1, node2, cursor);
+	
 	
 	if (sd) sd[1] = sd[1].outerHTML || sd[1].textContent;
 	
@@ -1488,7 +1448,7 @@ function groupChanges(changes) {
 
 
 
-function changes(parent1, parent2) {
+function changes(parent1, parent2, cursor) {
 	var changes = [];
 	
 	var nodes1 = parent1.childNodes;
@@ -1497,14 +1457,14 @@ function changes(parent1, parent2) {
 	var nodes2 = parent2.childNodes;
 	var text2 = nodes2.length == 0 ? "" : getText(parent2);
 
-	changes = textChanges(text1, text2);
+	changes = textChanges(text1, text2, parent2, cursor);
 	
 	return changes;
 }
 
 
 
-function textChanges(val1, val2) {
+function textChanges(val1, val2, node2, cursor) {
 	var changes = [];
 
 	for (var pos1 = val1.length-1, pos2 = val2.length-1; pos1 >= 0 && pos2 >= 0; pos1--, pos2--) {
@@ -1579,13 +1539,82 @@ function textChanges(val1, val2) {
 	
 	//console.log("--------------------------------------- Compressing ---------------------------------------------------");
 	//console.log(JSON.stringify(changes));
+
+
+	var textContent = getText(node2), textContentLength = textContent.length;
+	if (cursor) {
+		var cursor_ = cursor.slice();
+
+
+		console.log("b4", JSON.stringify(cursor_));
+		for (var i = 0; i < cursor_.length; i++) {
+			var curs = cursor_[i].slice();
+
+			var divs = node2.children, count = 0, newLineCount = 0;
+			for (var n = 0; n < divs.length; n++) {
+				count += divs[n].textContent.length;
+
+				if (count < curs[0]) newLineCount++;
+				else break;
+			}
+			curs[0] += newLineCount;
+
+			cursor_[i] = curs;
+		}
+
+		console.log("after", JSON.stringify(cursor_));
+
+
+
+		for (var i = 0; i < changes.length-1; i++) {
+			var textChange = changes[i];
+
+			if (textChange.length == 2 && typeof textChange[1] == "string") {
+
+				var incrs = [-textChange[1].length, textChange[1].length];
+
+				var range = [];
+				for (var n = 0; n < incrs.length; n++) {
+					var incr = incrs[n];
+
+					for (var pos = textChange[0]; true; pos += incr) {
+
+						if (pos < 0 || pos >= textContentLength) {
+							range.push(pos - incr);
+							break;
+						}
+
+						var str = textContent.substring(pos, pos + textChange[1].length);
+
+						if (str != textChange[1] ) {
+							range.push(pos - incr);
+							break;
+						}
+					}
+				}
+				range.push(i);
+
+				if (range[0] != range[1]) {
+					var c = cursor_[0][0] - 1;
+					if (c >= range[0] && c <= range[1]) {
+						if (range[2] == changes.length - 2) {
+							changes[changes.length - 1] = c == textContentLength - 1 ? 1 : 0;
+						}
+						console.log(JSON.stringify(cursor_));
+						console.log("changeing from ", JSON.stringify(textChange[0]), " to ", JSON.stringify(c));
+						textChange[0] = c;
+
+					}
+				}
+			}
+		}
+	}
 	
 	
 	return changes;
-
-	
-	
 }
+
+if (typeof exports != "undefined") exports.textChanges = textChanges;
 
 function check(changes) {
 	val1 = document.getElementById("section1").childNodes[0].parentNode.textContent;
@@ -1790,6 +1819,8 @@ function toColorize(changes) { // returns the ranges to colorize
 function colorize(node, changes, col) {
 	
 	var nodes = nodesToColorize(node, changes);
+
+	console.log("colorizing nodes " + JSON.stringify(nodes));
 	
 	var theColor = col || color || "black";
 

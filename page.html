@@ -483,8 +483,6 @@
 		function check() {
 			var el = document.getElementById("testArea");
 			el.normalize();
-
-			var val = $('#testArea').html();
 			
 			var cursor = getCursor3();
 			var cursorChanged = false;
@@ -500,16 +498,32 @@
 
 			var element = $('#testArea')[0];
 
+			var val = $('#testArea').html();
+
 			if (val != oldNodes.innerHTML) {
 
+				console.log('html changes');
+				console.log(val);
+				console.log(oldNodes.innerHTML);
 
 				changes_ = getNodeChanges(oldNodes, el, cursor);
 				console.log("text changes");
 				console.log(changes_[1]);
 
+				var dChanges = textChanges(oldNodes.textContent, el.textContent, el, cursor);
+
+				if (changes_[1].length == 1) { // no changes. there is either a 1 or 0 at the end, so the minimum size is 1
+					if (nodeTreesAreEqual(structure, nodeTree(el, color, true, false))) {
+						for (var i = 0; i < 10; i++) console.log("html changed, but not changes");
+						oldNodes.innerHTML = val;
+						setTimeout(check, timeOut);
+						return;
+					}
+				}
+
 				console.log('------------------------------------------------');
 
-				colorize($('#testArea')[0], changes_[1], color);
+				colorize($('#testArea')[0], dChanges, color);
 
 				form2(el, color);
 				form(el);
@@ -556,11 +570,10 @@
 				var newStructure = nodeTree(el, color, true, false);
 				
 
-				if (!nodeTreesAreEqual(newStructure, structure)) {
+				if (!strippedNodeTreesAreEqual(newStructure, structure)) {
 					console.log(el.outerHTML);
 					console.log(nodeTree(el, color, true, false));
 					alert('fail');
-					console.log(structurualChange);
 					console.log('problem. testArea is:');
 					console.log(newStructure);
 					console.log("structure");
@@ -634,7 +647,7 @@
 			}
 
 			var fromServer = createNodeTree(msg[1]);
-			if ( !nodeTreesAreEqual(fromServer, structure)  || msg[2] != text) {
+			if ( !strippedNodeTreesAreEqual(fromServer, structure)  || msg[2] != text) {
 
 				var pos = getCursor3();
 
@@ -737,17 +750,39 @@
 
 			text = executeChanges(text, textChanges_);
 
-			if (!nodeTreesAreEqual(structure, createNodeTree(msg[1])) || text != msg[2]) {
+			if (!strippedNodeTreesAreEqual(structure, createNodeTree(msg[1])) || text != msg[2]) {
 				alert('update problem');
 			}*/
 
 
+			//structure = nodeTree($('#testArea')[0], color, true, false);
+			//text = msg[2];
 
-			$('#testArea')[0].outerHTML = msg[1];
-			setText($('#testArea')[0], msg[1], msg[2]);
+			var oldText = text;
+			text = executeChanges(text, textChanges_);
+			applyTextChangesToStructure(structure, oldText, textChanges_, msg[4], text);
 
-			structure = nodeTree($('#testArea')[0], color, true, false);
-			text = msg[2];
+			form2(structure, msg[4], true);
+			form(structure);
+
+			if (text != msg[2]) {
+				console.log("updated text deosn't match");
+				console.log("from server", msg[2]);
+				console.log("from us    ", text);
+
+				alert("updated text doesn't match");
+			}
+
+			if (!strippedNodeTreesAreEqual(structure, createNodeTree(msg[1]))) {
+				console.log("updated structure deosn't match");
+				console.log("from server", strip(createNodeTree(msg[1])));
+				console.log("from us    ", strip(structure));
+
+				alert("updated structure doesn't match");
+			}
+
+			$('#testArea')[0].outerHTML = structure.outerHTML;
+			setText($('#testArea')[0], structure, text);
 
 
 			if (pos) {
@@ -829,32 +864,7 @@
 
 
 			if (!gotExpecting) {
-				console.log("after applying update");
-				console.log($('#testArea')[0].outerHTML);
-				console.log("got update before resp");
-				console.log(lastChanges);
-
-				var structurualChange = lastChanges[0];
-				var textChanges_ = lastChanges[1];
-
-				if (structurualChange) {
-					structurualChange = [lastChanges[0][0], createNodeTree(lastChanges[0][1])];
-
-					setStructureDifferences(structure, structurualChange);
-					colorizeStructure(changes_[2], structure, color);
-					form2(structure, color, true);
-					form(structure);
-				}
-
-				console.log("changing text from " + text);
-				text = executeChanges(text, textChanges_);
-				console.log("to                 " + text);
-
-
-				var pos = getCursor3();
-				$('#testArea')[0].outerHTML = structure.outerHTML;
-				setText($('#testArea')[0], structure, text);
-				setCursor3(pos);
+				alert("didn't get expecting");
 			}
 
 			
@@ -875,6 +885,11 @@
 			text = msg['text'];
 			structure = createNodeTree(msg['struct']);
 			users = msg['currentUsers'];
+
+			var len = structureLength(structure) + max(0, structure.childNodes.length - 1);
+			if (len != text.length) {
+				alert('length mismatch on init');
+			}
 
 			edit = msg['start'];
 			expecting = ['update', nextEdit(edit)];
