@@ -188,6 +188,11 @@ function setAttrs(element, dict) {
 function form2(node, color, isStructure) {
 	var children = node.childNodes;
 
+	if (children.length == 0) {
+		node.appendChild(blankState(color, isStructure));
+		return;
+	}
+
 	for (var i = 0; i < children.length; i++) {
 		var child = children[i];
 
@@ -1049,7 +1054,28 @@ function _removeNewLineFromStructure(structure, position) {
 	toJoin2.parentNode.removeChild(toJoin2);
 }
 
+function blankState(color, isStructure) {
+	var newDiv = document.createElement('div');
+
+	var newFont1 = document.createElement('font');
+	newFont1.color = color;
+	newFont1.textContent = isStructure ? "0" : "";
+
+	var newFont2 = document.createElement('font');
+	newFont2.color = color;
+	newFont2.appendChild(document.createElement('br'));
+
+	newDiv.appendChild(newFont1);
+	newDiv.appendChild(newFont2);
+
+	return newDiv;
+}
+
 function _applyAdditionToStructure(structure, originalText, addition, color, isPost) {
+
+	if (structure.childNodes.length == 0) {
+		structure.appendChild(blankState(color, true));
+	}
 
 	addition = addition.slice();
 
