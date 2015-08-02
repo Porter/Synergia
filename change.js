@@ -890,21 +890,50 @@ function nodeAt(pos, node, isStructure) {
 	}
 }
 
+
+function nodeAtStructure(pos, node, isRoot) {
+	var len = pos;
+
+	var children = $('#testArea')[0].childNodes;
+	if (node) children = node.childNodes;
+
+	for (var i = 0; i < children.length; i++) {
+		var child = children[i];
+
+		var textLength = structureLength(child); 
+
+		len -= textLength;
+		//console.log("len is now", len);
+
+		if (len <= 0) {
+			len += textLength;
+			
+			if (child.nodeName.toLowerCase() == "#text") return [child, len];
+			return nodeAtStructure(len, child, false);
+
+		}
+		if (isRoot == undefined){ len--; }
+	}
+}
+
 function _applyNewLineToStructure(structure, position, color, isPost) {
-	var node = nodeAt(position, structure, true);
+	var node = nodeAtStructure(position, structure);
 	if (!node && isPost) {
-		node = nodeAt(position-1, structure, true);
-		node[1]++;
+		node = nodeAtStructure(position-1, structure);
 	}
 	if (node) {
 		var font = node[0].parentNode;
 
 		var div = node[0].parentNode.parentNode;
 
+		console.log("splitting ", strip(node[0]), node[1]);
+
 		var aboveFonts = [], belowFonts = [];
 
 		var leftSide = node[1];
 		var rightSide = parseInt(node[0].textContent) - leftSide;
+
+		console.log(leftSide, rightSide);
 
 		node[0].textContent = "" + leftSide;
 		if (leftSide == 0) {
@@ -955,7 +984,7 @@ function _applyNewLineToStructure(structure, position, color, isPost) {
 
 function _removeNewLineFromStructure(structure, position) {
 
-	var removing = nodeAt(position, structure, true);
+	var removing = nodeAtStructure(position, structure);
 
 	if (removing[1] != parseInt(removing[0].textContent)) {
 		console.warn("removing a newline, but the position we got isn't the end of a node");
@@ -964,15 +993,26 @@ function _removeNewLineFromStructure(structure, position) {
 
 	var toJoin1 = removing[0].parentNode.parentNode, toJoin2 = removing[0].parentNode.parentNode.nextSibling;
 
-	console.log(strip(toJoin1), strip(toJoin2));
-
 	var children1 = toJoin1.childNodes;
-	toJoin1.removeChild(children1[children1.length - 1]); // remove the br at the end of every div
+	var br = toJoin1.removeChild(children1[children1.length - 1]); // remove the br at the end of every div. We'll add it to the end later
 
 	var children2 = toJoin2.childNodes;
-	for (var i = 0; i < children2.length; i++) {
-		toJoin1.appendChild(toJoin2.removeChild(children2[i]));
+
+	var goingToBeSizeOftoJoin1 = toJoin1.childNodes.length + children2.length;
+
+	console.log()
+	while (children2.length > 0) {
+		var t = toJoin2.removeChild(children2[0]);
+
+		if (t.childNodes.length == 1 && t.childNodes[0].nodeName.toLowerCase() == "#text" && t.textContent == "0" && goingToBeSizeOftoJoin1 > 2) {
+			continue;
+		}
+
+		console.log("addint to toJoin1", strip(t));
+		toJoin1.appendChild(t);
 	}
+
+	//toJoin1.appendChild(br);
 
 	toJoin2.parentNode.removeChild(toJoin2);
 }
@@ -981,32 +1021,32 @@ function _applyAdditionToStructure(structure, originalText, addition, color, isP
 
 	addition = addition.slice();
 
-	var newLineCount = 0;
-	for (var i = 0; i < addition[0]; i++) {
-		if (originalText.charAt(i) == '\n') newLineCount++;
-	}
-
-	addition[0] -= newLineCount;
 
 	var textAdditions = addition[1].split('\n'), additions = [];
 
 	var offset = 0;
 	for (var i = 0; i < textAdditions.length; i++) {
 		additions.push([addition[0] + offset, textAdditions[i]]);
-		offset += textAdditions[i].length;
+		offset += textAdditions[i].length + 1;
 	}
 
 	for (var i = 0; i < additions.length; i++) {
+		console.log('-----------');
 
 		addition = additions[i];
 
+		console.log(addition);
+
 		if (i != 0) {
-			_applyNewLineToStructure(structure, addition[0], color, isPost);
+			_applyNewLineToStructure(structure, additions[i-1][0], color, isPost);
+
+			originalText = originalText.substring(0, addition[0]) +  '\n' + originalText.substring(addition[0]);
+			addition[0]++;
 		}
 
-		var node = nodeAt(addition[0], structure, true);
+		var node = nodeAtStructure(addition[0], structure);
 		if (!node && isPost) {
-			node = nodeAt(addition[0]-1, structure, true);
+			node = nodeAtStructure(addition[0]-1, structure);
 		}
 		if (node) {
 			var positionInNode = node[1];
@@ -1014,28 +1054,32 @@ function _applyAdditionToStructure(structure, originalText, addition, color, isP
 
 			var parentNode = node.parentNode;
 
-			console.log('adding after "' + originalText.charAt(addition[0] + newLineCount - 1) + '"');
+			console.log('adding after "' + originalText.charAt(addition[0] - 1) + '"');
 
 
 			console.log(addition[0], strip(structure));
-			console.log(nodeAt(addition[0], structure, true));
-			console.log(nodeAt(addition[0]-1, structure, true));
-			if (positionInNode == parseInt(node.textContent)) {
-				var movedAhead = 0;
-				while (originalText.charAt(addition[0] + newLineCount - 1 + movedAhead) == '\n') {
-					console.log("going forwar from ", strip(node));
-					node = nextTextNode(node) || node;
-					console.log("to ", strip(node));
-					console.log(originalText.substring(addition[0] + newLineCount -1 +movedAhead));
-					movedAhead--;
-				}
-				console.log(originalText.charAt(addition[0] + newLineCount - 1 + movedAhead));
-			}
-			else { console.log('efasdf")', isPost, positionInNode); }
+			console.log(nodeAtStructure(addition[0], structure));
+			// if (positionInNode == parseInt(node.textContent)) {
+			// 	var movedAhead = 0;	
+			// 	while (originalText.charAt(addition[0] - 1 + movedAhead) == '\n') {
+			// 		console.log("going forward from ", strip(node));
+			// 		node = nextTextNode(node) || node;
+			// 		console.log("to ", strip(node));
+			// 		movedAhead--;
+
+			// 	}
+			// }
+			// else { console.log('efasdf")', isPost, positionInNode); }
 
 
+			console.log(color, parentNode.color);
+			var parentColor = parentNode.color;
 			if (color != parentNode.color) {
+
+
 				var nodeLength = parseInt(node.textContent);
+				var parentNode = node.parentNode.parentNode;
+				console.log(strip(parentNode))
 
 				var leftSide = positionInNode;
 				var rightSide = nodeLength - leftSide;
@@ -1049,11 +1093,12 @@ function _applyAdditionToStructure(structure, originalText, addition, color, isP
 				middleFont.textContent = "" + middle;
 
 				var rightFont = document.createElement('font');
-				rightFont.color = parentNode.color;
+				rightFont.color = parentColor;
 				rightFont.textContent = "" + rightSide;
 
-				parentNode.insertBefore(rightFont, node.nextSibling);
-				parentNode.insertBefore(middleFont, node.nextSibling);
+				parentNode.insertBefore(rightFont, node.parentNode.nextSibling);
+				parentNode.insertBefore(middleFont, node.parentNode.nextSibling);
+				console.log(strip(parentNode));
 
 			}
 			else { 
@@ -1061,26 +1106,23 @@ function _applyAdditionToStructure(structure, originalText, addition, color, isP
 
 			}
 
+			originalText = originalText.substring(0, addition[0]) + addition[1] + originalText.substring(addition[0]);
+
 		}
 		else {
 			console.warn("nodeAt returned null for structure:");
-			console.warn(structure);
+			console.warn(strip(structure));
 			console.warn("and addition");
 			console.warn(addition);
 		}
 	}
 }
 
-function _applyDeletionToStructure(structure, originalText, originalTextOffset, deletion, color, isPost) {
-
-	console.log(strip(structure));
+function _applyDeletionToStructure(structure, originalText, deletion, color, isPost) {
 	deletion = deletion.slice();
-	var newLineCount = 0;
-	for (var i = 0; i < deletion[0]; i++) {
-		if (originalText.charAt(i) == '\n') newLineCount++;
-	}
 
-	var deleting = originalText.substring(deletion[0] - originalTextOffset, (deletion[0] - originalTextOffset) + deletion[1])
+
+	var deleting = originalText.substring(deletion[0], deletion[0] + deletion[1])
 	var textDeletions = deleting.split('\n'), deletions = [];
 
 	for (var i = 0; i < textDeletions.length; i++) {
@@ -1088,24 +1130,21 @@ function _applyDeletionToStructure(structure, originalText, originalTextOffset, 
 	}
 
 	
-	var offset = 0;
 	for (var i = 0; i < deletions.length; i++) {
 
 		var deletion = deletions[i];
-		//console.log("deleting " + JSON.stringify(deletion));
-		var deleting = originalText.substring(deletion[0] - originalTextOffset, (deletion[0] - originalTextOffset) + deletion[1]);
-		//console.log("deleting text" + deleting);
+		var deleting = originalText.substring(deletion[0], deletion[0] + deletion[1]);
 
 		if (i != 0) {
-			//console.log("removing newLine");
-			_removeNewLineFromStructure(structure, deletions[i-1][0] - newLineCount);
-			//console.log("finshed removing newLine");
+			_removeNewLineFromStructure(structure, deletions[i-1][0]);
+			console.log("finshed removing newLine", strip(structure));
 		}
 
-		var node = nodeAt(deletion[0] - newLineCount, structure, true);
+		var node = nodeAtStructure(deletion[0], structure);
 		var toDelete = deletion[1];
 
 
+		console.log(strip(structure));
 		console.log("deleting", deletion, node[0], node[1]);
 		var positionInNode;
 		if (node) {
@@ -1113,12 +1152,10 @@ function _applyDeletionToStructure(structure, originalText, originalTextOffset, 
 			node = node[0];
 		}
 
-		offset += toDelete;
-
 		while (toDelete > 0) {
 			if (node) {
-				console.log(strip(node));
 				var nodeAmount = parseInt(node.textContent) - positionInNode;
+				console.log("remvoing " + toDelete + "from ", strip(node), "starting at " + positionInNode);
 
 				if (nodeAmount > toDelete) {
 					node.textContent =  "" + (positionInNode + (nodeAmount - toDelete));
@@ -1140,9 +1177,9 @@ function _applyDeletionToStructure(structure, originalText, originalTextOffset, 
 			}
 			else {
 				console.warn("nodeAt returned null for structure:");
-				console.warn(structure);
+				console.warn(strip(structure));
 				console.warn("and deletion");
-				console.warn(deletion);
+				console.warn([deletion[0], deletion[1]]);
 				break;
 			}
 		}
@@ -1150,30 +1187,42 @@ function _applyDeletionToStructure(structure, originalText, originalTextOffset, 
 	
 }
 
-function applyTextChangesToStructure(structure, originalText, textChanges_, color) {
+function applyTextChangesToStructure(structure, originalText, textChanges_, color, finalText) {
 	var isPost = textChanges_[textChanges_.length - 1];
 
 
-	var originalTextOffset = 0;
+	var textOffset = 0, lastOffset = 0;
 	for (var i = 0; i < textChanges_.length - 1; i++) {
+
 		var textChange_ = textChanges_[i];
 
 		if (textChange_.length == 2){
 			if (typeof textChange_[1] == "string") {
 				_applyAdditionToStructure(structure, originalText, textChange_, color, isPost && i == textChanges_.length - 2);
-				originalTextOffset += textChange_[1].length;
+
+				textOffset += textChange_[1].length;
 			}
 			else {
-				_applyDeletionToStructure(structure, originalText, originalTextOffset, textChange_, color, isPost && i == textChanges_.length - 2);
-				originalTextOffset -= textChange_[1];
+				_applyDeletionToStructure(structure, originalText, textChange_, color, isPost && i == textChanges_.length - 2);
+				textOffset -= textChange_[1];
 			}
 		}
 		else {
-			_applyDeletionToStructure(structure, originalText, originalTextOffset, [textChange_[0], textChange_[2]], color);
+			_applyDeletionToStructure(structure, originalText, [textChange_[0], textChange_[2]], color);
 			_applyAdditionToStructure(structure, originalText, [textChange_[0], textChange_[1]], color);
 
-			originalTextOffset += textChange_[1].length - textChange_[2];
+			textOffset += textChange_[1].length - textChange_[2];
 		}
+
+		originalText = executeChanges(originalText, [textChange_, false], (isPost && i == textChanges_.length - 2) ? 0 : lastOffset);
+
+		lastOffset = textOffset;
+	}
+
+	if (originalText != finalText) {
+		alert('text problem 2');
+		console.log(originalText);
+		console.log(finalText);
 	}
 }
 
@@ -1519,8 +1568,9 @@ function check(changes) {
 }
 
 
-function executeChanges(val, changes) {
-	var offset = 0;
+function executeChanges(val, changes, startingOffset) {
+	changes = changes.slice();
+	var offset = startingOffset || 0;
 	for (var i = 0; i < changes.length - 1; i++) {
 		
 		var change = changes[i];

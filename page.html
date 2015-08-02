@@ -502,21 +502,12 @@
 
 			if (val != oldNodes.innerHTML) {
 
+
 				changes_ = getNodeChanges(oldNodes, el, cursor);
 				console.log("text changes");
 				console.log(changes_[1]);
 
 				console.log('------------------------------------------------');
-				
-
-				var structureCopy = structure.cloneNode(); structureCopy.innerHTML = structure.innerHTML;
-				//console.log("before", structureCopy.outerHTML);
-				applyTextChangesToStructure(structureCopy, getText(oldNodes), changes_[1], color);
-				form2(structureCopy, color, true);
-				form(structureCopy);
-				//console.log("after", structureCopy.outerHTML);
-
-
 
 				colorize($('#testArea')[0], changes_[1], color);
 
@@ -525,9 +516,23 @@
 
 				from = oldNodes;
 				
-				text = getText(el)
+
+				var gotText = executeChanges(text, changes_[1]);
+
+				text = getText(el);
+
+				if (gotText != text) {
+					alert('text problem');
+					console.log(text);
+					console.log(gotText);
+				}
 				preForm = getNode();
 				
+				//console.log("before", structureCopy.outerHTML);
+				applyTextChangesToStructure(structure, getText(oldNodes), changes_[1], color, getText(el));
+				form2(structure, color, true);
+				form(structure);
+				//console.log("after", structureCopy.outerHTML);
 
 				oldNodes = getNode();
 				lastPush = getNode();
@@ -538,26 +543,7 @@
 				changes_.push(edit);
 
 				
-				var structurualChange = changes_[0];
-				if (structurualChange) {
-					structurualChange = [changes_[0][0], createNodeTree(changes_[0][1])];
-
-					//console.log("0", (structure.outerHTML));
-					//console.log(structurualChange[0], structurualChange[1].outerHTML);
-					setStructureDifferences(structure, structurualChange);
-					//console.log("1", (structure.outerHTML));
-					colorizeStructure(changes_[2], structure, color);
-					//console.log("2", (structure.outerHTML));
-					form2(structure, color, true);
-					//console.log("3", (structure.outerHTML));
-					form(structure);
-					//console.log("4", (structure.outerHTML));
-				}
 				
-				var newStructure = nodeTree(el, color, true, false);
-
-				if (nodeTreesAreEqual(structureCopy, newStructure)) { console.log('pass'); }
-				else { console.warn('fail'); console.warn(structureCopy); console.warn(newStructure); alert('fail'); }
 
 				console.log('------------------------------------------------');
 
@@ -565,12 +551,15 @@
 				//console.log(changes_);
 				console.log(JSON.stringify(changes_));
 
+
+
+				var newStructure = nodeTree(el, color, true, false);
 				
 
 				if (!nodeTreesAreEqual(newStructure, structure)) {
 					console.log(el.outerHTML);
 					console.log(nodeTree(el, color, true, false));
-					alert('problem');
+					alert('fail');
 					console.log(structurualChange);
 					console.log('problem. testArea is:');
 					console.log(newStructure);
