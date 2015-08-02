@@ -894,8 +894,9 @@ function nodeAt(pos, node, isStructure) {
 function nodeAtStructure(pos, node, isRoot) {
 	var len = pos;
 
-	var children = $('#testArea')[0].childNodes;
+	var children;
 	if (node) children = node.childNodes;
+	else children = $('#testArea')[0].childNodes;
 
 	for (var i = 0; i < children.length; i++) {
 		var child = children[i];
@@ -1221,10 +1222,13 @@ function applyTextChangesToStructure(structure, originalText, textChanges_, colo
 
 	if (originalText != finalText) {
 		alert('text problem 2');
+		console.log('text problem');
 		console.log(originalText);
 		console.log(finalText);
 	}
 }
+
+if (typeof exports != "undefined") exports.applyTextChangesToStructure = applyTextChangesToStructure;
 
 function getNodeChanges(node1, node2, cursor) {
 	var node1 = node1 || $('#section1')[0];
@@ -1239,9 +1243,32 @@ function getNodeChanges(node1, node2, cursor) {
 	
 	var textChanges_ = changes(node1, node2);
 
-	var textContent = node2.textContent, textContentLength = textContent.length;
+	var textContent = getText(node2), textContentLength = textContent.length;
 
 	if (cursor) {
+		var cursor_ = cursor.slice();
+
+
+		console.log("b4", JSON.stringify(cursor_));
+		for (var i = 0; i < cursor_.length; i++) {
+			var curs = cursor_[i].slice();
+
+			var divs = node2.children, count = 0, newLineCount = 0;
+			for (var n = 0; n < divs.length; n++) {
+				count += divs[n].textContent.length;
+
+				if (count < curs[0]) newLineCount++;
+				else break;
+			}
+			curs[0] += newLineCount;
+
+			cursor_[i] = curs;
+		}
+
+		console.log("after", JSON.stringify(cursor_));
+
+
+
 		for (var i = 0; i < textChanges_.length; i++) {
 			var textChange = textChanges_[i];
 
@@ -1271,11 +1298,13 @@ function getNodeChanges(node1, node2, cursor) {
 				range.push(i);
 
 				if (range[0] != range[1]) {
-					var c = cursor[0][0] - 1;
+					var c = cursor_[0][0] - 1;
 					if (c >= range[0] && c <= range[1]) {
 						if (range[2] == textChanges_.length - 2) {
 							textChanges_[textChanges_.length - 1] = c == textContentLength - 1 ? 1 : 0;
 						}
+						console.log(JSON.stringify(cursor_));
+						console.log("changeing from ", JSON.stringify(textChange[0]), " to ", JSON.stringify(c));
 						textChange[0] = c;
 
 					}
