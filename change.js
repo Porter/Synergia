@@ -185,8 +185,23 @@ function setAttrs(element, dict) {
         element.setAttribute(i, dict[i]);
 }
 
-function form2(node, color, isStructure) {
+function form2(node, color, isStructure, cursor) {
 	var children = node.childNodes;
+
+
+	var newHTML = node.innerHTML.replace(/\n/g, '');;
+
+	if (newHTML != node.innerHTML) {
+		node.innerHTML = newHTML;
+		if (cursor) {
+			try {
+				setCursor3(cursor);
+			}
+			catch (e) {
+				alert(e);
+			}
+		}
+	}
 
 	if (children.length == 0) {
 		node.appendChild(blankState(color, isStructure));
@@ -230,25 +245,31 @@ function form2(node, color, isStructure) {
 				continue;
 			}
 
-			if (font.childNodes.length == 0) {
-				child.removeChild(font);
-				n--;
-				continue;
-			}
 
-			if (isStructure && font.childNodes[0].textContent == "0") {
-				if (fonts.length <= 2) {
-					if (fonts.length == 2 && fonts[1].childNodes[0] && fonts[1].childNodes[0].nodeName.toLowerCase() != 'br') {
+			if (n > 0 || fonts.length > 2) {
+
+				if (font.childNodes.length == 0) {
+					child.removeChild(font);
+					n--;
+					continue;	
+				}
+
+				if (isStructure && font.childNodes[0].textContent == "0") {
+					if (fonts.length <= 2) {
+						if (fonts.length == 2 && fonts[1].childNodes[0] && fonts[1].childNodes[0].nodeName.toLowerCase() != 'br') {
+							child.removeChild(font);
+							n--;
+							continue;
+						}
+					}
+					else {
 						child.removeChild(font);
 						n--;
 						continue;
 					}
 				}
-				else {
-					child.removeChild(font);
-					n--;
-					continue;
-				}
+
+
 			}
 
 
@@ -270,8 +291,10 @@ function form2(node, color, isStructure) {
 					font.appendChild(document.createElement('br'));
 				}
 				else {
-					child.removeChild(font);
-					n--;
+					if (children.length > 1 && n > 0) {
+						child.removeChild(font);
+						n--;
+					}
 				}
 
 			}
@@ -318,15 +341,20 @@ function form2(node, color, isStructure) {
 
 		// join fonts with equal attributes
 		for (var n = 0; n < fonts.length-1; n++) {
+			if (fonts[n].childNodes.length == 0) {
+				if (n == 0) {
+					continue;
+				}
+				else {
+					child.removeChild(fonts[n]);
+					n--;
+					continue;
+				}
+			}
+
 			if (fonts[ n ].childNodes[0].nodeName.toLowerCase() != "#text") continue;
 			if (fonts[n+1].childNodes[0].nodeName.toLowerCase() != "#text") continue;
 
-
-			if (fonts[n].textContent == "") {
-				child.removeChild(fonts[n]);
-				n--;
-				continue;
-			}
 
 			if (equalFontAttrs(fonts[n].attributes, fonts[n+1].attributes, true)) {
 				if (isStructure) { fonts[n].textContent = "" + (parseInt(fonts[n].textContent) + parseInt(fonts[n+1].textContent)); }
@@ -339,6 +367,8 @@ function form2(node, color, isStructure) {
 
 		// anything ending in a space must actually end in &nbsp;
 		for (var n = 0; n < fonts.length; n++) {
+			if (fonts[n].childNodes.length == 0) continue;
+
 			if (fonts[n].childNodes[0].nodeName.toLowerCase() != "#text") continue;
 
 			var text = fonts[n].textContent;
@@ -356,19 +386,12 @@ function form2(node, color, isStructure) {
 
 		var fonts = child.childNodes;
 
-		if (fonts.length ==  0) {
-			node.removeChild(child);
-
-			i--;
-			continue;
-		}
-
 		for (var n = 0; n < fonts.length; n++) {
 			var font = fonts[n];
 
 			// at a br, we are going to split it into two divs.
 
-			if (font.childNodes.length == 0) { alert("this shouldn't happen sajfoewjf for cntrl f"); continue; }
+			if (font.childNodes.length == 0) continue;
 
 
 			if (font.childNodes[0].nodeName.toLowerCase() == "br" && n != fonts.length - 1) {
@@ -954,8 +977,8 @@ function nodeAtStructure(pos, node, isRoot) {
 function _applyNewLineToStructure(structure, position, color, isPost) {
 	var node = nodeAtStructure(position, structure);
 
-	console.log(position + " of ", strip(structure));
-	console.log(" gives us ", strip(node[0]), node[1]);
+	//console.log(position + " of ", strip(structure));
+	//console.log(" gives us ", strip(node[0]), node[1]);
 	if (!node && isPost) {
 		console.log("node is null");
 		node = nodeAtStructure(position-1, structure);
@@ -965,14 +988,14 @@ function _applyNewLineToStructure(structure, position, color, isPost) {
 
 		var div = node[0].parentNode.parentNode;
 
-		console.log("splitting ", strip(node[0]), node[1]);
+		//console.log("splitting ", strip(node[0]), node[1]);
 
 		var aboveFonts = [], belowFonts = [];
 
 		var leftSide = node[1];
 		var rightSide = parseInt(node[0].textContent) - leftSide;
 
-		console.log(leftSide, rightSide);
+		//console.log(leftSide, rightSide);
 
 		node[0].textContent = "" + leftSide;
 		if (leftSide == 0) {
@@ -1039,7 +1062,6 @@ function _removeNewLineFromStructure(structure, position) {
 
 	var goingToBeSizeOftoJoin1 = toJoin1.childNodes.length + children2.length;
 
-	console.log()
 	while (children2.length > 1) {
 		var t = toJoin2.removeChild(children2[0]);
 
@@ -1047,10 +1069,8 @@ function _removeNewLineFromStructure(structure, position) {
 			continue;
 		}
 
-		console.log("adding to toJoin1", strip(t));
 		toJoin1.appendChild(t);
 	}
-	console.log("addint to toJoin1", strip(br));
 	toJoin1.appendChild(br);
 
 	//toJoin1.appendChild(br);
@@ -1093,14 +1113,12 @@ function _applyAdditionToStructure(structure, originalText, addition, color, isP
 	}
 
 	for (var i = 0; i < additions.length; i++) {
-		console.log('-----------');
 
 		addition = additions[i];
 
-		console.log(addition);
+		//console.log(addition);
 
 		if (i != 0) {
-			console.log(JSON.stringify(additions[i-1]));
 
 			var addedNewLineLastTime = i > 1;
 			var lengthExtra = addedNewLineLastTime ? 1 : 0;
@@ -1121,10 +1139,11 @@ function _applyAdditionToStructure(structure, originalText, addition, color, isP
 
 			var parentNode = node.parentNode;
 
-			console.log('adding after "' + originalText.charAt(addition[0] - 1) + '"');
+			//console.log('adding after "' + originalText.charAt(addition[0] - 1) + '"');
 
 
-			console.log(nodeAtStructure(addition[0], structure));
+			//console.log(nodeAtStructure(addition[0], structure));
+			
 			// if (positionInNode == parseInt(node.textContent)) {
 			// 	var movedAhead = 0;	
 			// 	while (originalText.charAt(addition[0] - 1 + movedAhead) == '\n') {
@@ -1138,14 +1157,12 @@ function _applyAdditionToStructure(structure, originalText, addition, color, isP
 			// else { console.log('efasdf")', isPost, positionInNode); }
 
 
-			console.log(color, parentNode.color);
 			var parentColor = parentNode.color;
 			if (color != parentNode.color) {
 
 
 				var nodeLength = parseInt(node.textContent);
 				var parentNode = node.parentNode.parentNode;
-				console.log(strip(parentNode))
 
 				var leftSide = positionInNode;
 				var rightSide = nodeLength - leftSide;
@@ -1164,8 +1181,6 @@ function _applyAdditionToStructure(structure, originalText, addition, color, isP
 
 				parentNode.insertBefore(rightFont, node.parentNode.nextSibling);
 				parentNode.insertBefore(middleFont, node.parentNode.nextSibling);
-				console.log(strip(parentNode));
-
 			}
 			else { 
 				node.textContent = "" + (parseInt(node.textContent) + addition[1].length);
@@ -1203,15 +1218,13 @@ function _applyDeletionToStructure(structure, originalText, deletion, color, isP
 
 		if (i != 0) {
 			_removeNewLineFromStructure(structure, deletions[i-1][0]);
-			console.log("finshed removing newLine", strip(structure));
 		}
 
 		var node = nodeAtStructure(deletion[0], structure);
 		var toDelete = deletion[1];
 
 
-		console.log(strip(structure));
-		console.log("deleting", deletion, node[0], node[1]);
+		//console.log("deleting", deletion, node[0], node[1]);
 		var positionInNode;
 		if (node) {
 			positionInNode = node[1];
@@ -1297,8 +1310,6 @@ if (typeof exports != "undefined") exports.applyTextChangesToStructure = applyTe
 function getNodeChanges(node1, node2, cursor) {
 	var node1 = node1 || $('#section1')[0];
 	var node2 = node2 || $('#section2')[0];
-	
-
 
 	var sd = structureDifferences(node1, nodeTree(node2, true, false));
 	
@@ -1500,6 +1511,7 @@ function changes(parent1, parent2, cursor) {
 
 
 function textChanges(val1, val2, node2, cursor) {
+
 	var changes = [];
 
 	for (var pos1 = val1.length-1, pos2 = val2.length-1; pos1 >= 0 && pos2 >= 0; pos1--, pos2--) {
@@ -1635,7 +1647,6 @@ function textChanges(val1, val2, node2, cursor) {
 						if (range[2] == changes.length - 2) {
 							changes[changes.length - 1] = c == textContentLength - 1 ? 1 : 0;
 						}
-						console.log(JSON.stringify(cursor_));
 						console.log("changeing from ", JSON.stringify(textChange[0]), " to ", JSON.stringify(c));
 						textChange[0] = c;
 
@@ -1760,17 +1771,17 @@ function executeNodeChanges(section1, changes) {
 function nodesToColorize(node, changes) {
 	
 	var toColor = toColorize(changes);
-
-	//console.log('toColor: ' + JSON.stringify(toColor));
 	
 	var nodes = [];
 	for (var i = 0; i < toColor.length; i++) {
 		var toC = toColor[i];
 		//console.log(node.textContent.substring(toC[0], toC[0] + toC[1]));
+
 		var ns = nodesToColorizeHelper(node, [toC[0], toC[0] + toC[1]]);
-		//console.log(ns);
-		
-		nodes.push.apply(nodes, ns);
+		for (var n = 0; n < ns.length; n++) {
+			nodes.push(ns[n]);
+		}
+
 	}
 	
 	return nodes;

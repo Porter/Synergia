@@ -475,7 +475,7 @@
 		var timeOut = 100; // ms
 		
 		
-		var oldNodes, structure, text, lastPush, lastStructure, lastChanges, preForm, from, oldCursor = [], userLookup, undefinedUsers = [], notifying = false;
+		var oldNodes, structure, text, lastPush, lastStructure, lastText, lastChanges, preForm, from, oldCursor = [], userLookup, undefinedUsers = [], notifying = false;
 		var edit, edits = {}, expecting;
 
 		var cursorPositions = {}, lastSize;
@@ -487,7 +487,12 @@
 			var cursor = getCursor3();
 			var cursorChanged = false;
 
-			form2(el, color);
+
+			var stuff = [strip(el), strip(nodeTree(el)), el.outerHTML];
+			//console.log("preform", strip(el), strip(nodeTree(el)));
+			//console.log(el.outerHTML);
+
+			form2(el, color, false);
 			form(el);
 
 			if (!arrEquals(oldCursor, cursor)) {
@@ -501,10 +506,6 @@
 			var val = $('#testArea').html();
 
 			if (val != oldNodes.innerHTML) {
-
-				console.log('html changes');
-				console.log(val);
-				console.log(oldNodes.innerHTML);
 
 				changes_ = getNodeChanges(oldNodes, el, cursor);
 				console.log("text changes");
@@ -531,6 +532,11 @@
 				from = oldNodes;
 				
 
+				lastStructure = structure.cloneNode();
+				lastStructure.innerHTML = structure.innerHTML;
+
+				lastText = text;
+
 				var gotText = executeChanges(text, changes_[1]);
 
 				text = getText(el);
@@ -550,7 +556,6 @@
 
 				oldNodes = getNode();
 				lastPush = getNode();
-				lastStructure = structure;
 
 				lastChanges = changes_;
 
@@ -762,32 +767,12 @@
 			//structure = nodeTree($('#testArea')[0], color, true, false);
 			//text = msg[2];
 
-			var oldText = text;
-			text = executeChanges(text, textChanges_);
-			applyTextChangesToStructure(structure, oldText, textChanges_, msg[4], text);
+			var oldText = lastText;
+			lastText = executeChanges(lastText, textChanges_);
+			applyTextChangesToStructure(lastStructure, oldText, textChanges_, msg[4], lastText);
 
-			form2(structure, msg[4], true);
-			form(structure);
-
-			if (text != msg[2]) {
-				console.log("updated text deosn't match");
-				console.log("from server", msg[2]);
-				console.log("from us    ", text);
-
-				alert("updated text doesn't match");
-			}
-
-			if (!strippedNodeTreesAreEqual(structure, createNodeTree(msg[1]))) {
-				console.log("updated structure deosn't match");
-				console.log("from server", strip(createNodeTree(msg[1])));
-				console.log("from us    ", strip(structure));
-
-				alert("updated structure doesn't match");
-			}
-
-			$('#testArea')[0].outerHTML = structure.outerHTML;
-			setText($('#testArea')[0], structure, text);
-
+			form2(lastStructure, msg[4], true);
+			form(lastStructure);
 
 			if (pos) {
 				var isPost = textChanges_[textChanges_.length-1];
@@ -831,6 +816,9 @@
 
 			if (gotExpecting) {
 				console.log("got expected");
+
+				lastText = text;
+				lastStructure = structure;
 			}
 			else {
 				console.log("didn't get expecting");
@@ -864,14 +852,37 @@
 
 			applyPreviousEdits();
 
-			oldNodes = getNode();
-
 
 			if (!gotExpecting) {
 				alert("didn't get expecting");
 			}
 
-			
+
+			if (lastText != msg[2]) {
+				console.log("updated text deosn't match");
+				console.log("from server", msg[2]);
+				console.log("from us    ", lastText);
+
+				alert("updated text doesn't match");
+			}
+
+			if (!strippedNodeTreesAreEqual(lastStructure, createNodeTree(msg[1]))) {
+				console.log("updated structure deosn't match");
+				console.log("from server", strip(createNodeTree(msg[1])));
+				console.log("from us    ", strip(lastStructure));
+
+				alert("updated structure doesn't match");
+			}
+
+
+			structure = lastStructure;
+			text = lastText;
+
+			$('#testArea')[0].outerHTML = structure.outerHTML;
+			setText($('#testArea')[0], structure, text);
+
+			oldNodes = getNode();
+
 			
 			// todo check for changes here, otherwise they'll be forgotten,
 			// because:   changes_ = changes(old, val);
