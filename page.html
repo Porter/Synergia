@@ -404,29 +404,6 @@
 	        }
 		}
 
-		function nodeAt(pos, node) {
-			var len = pos;
-
-			var children = $('#testArea')[0].childNodes;
-			if (node) children = node.childNodes;
-
-			for (var i = 0; i < children.length; i++) {
-				var child = children[i];
-
-				var textLength = child.textContent.length;
-
-				len -= textLength;
-
-				if (len <= 0) {
-					len += textLength;
-					
-					if (child.nodeName.toLowerCase() == "#text") return [child, len];
-					return nodeAt(len, child);
-
-				}
-			}
-		}
-
 		function getCursor() {
 			var sel = window.getSelection();
 	        if (sel.rangeCount > 0) {
@@ -498,7 +475,7 @@
 		var timeOut = 100; // ms
 		
 		
-		var oldNodes, structure, text, lastPush, lastStructure, preForm, from, oldCursor = [], userLookup, undefinedUsers = [], notifying = false;
+		var oldNodes, structure, text, lastPush, lastStructure, lastText, lastChanges, preForm, from, oldCursor = [], userLookup, undefinedUsers = [], notifying = false;
 		var edit, edits = {}, expecting;
 
 		var cursorPositions = {}, lastSize;
@@ -506,13 +483,16 @@
 		function check() {
 			var el = document.getElementById("testArea");
 			el.normalize();
-
-			var val = $('#testArea').html();
 			
 			var cursor = getCursor3();
 			var cursorChanged = false;
 
-			form2(el);
+
+			var stuff = [strip(el), strip(nodeTree(el)), el.outerHTML];
+			//console.log("preform", strip(el), strip(nodeTree(el)));
+			//console.log(el.outerHTML);
+
+			form2(el, color, false);
 			form(el);
 
 			if (!arrEquals(oldCursor, cursor)) {
@@ -523,56 +503,82 @@
 
 			var element = $('#testArea')[0];
 
+			var val = $('#testArea').html();
+
 			if (val != oldNodes.innerHTML) {
 
 				changes_ = getNodeChanges(oldNodes, el, cursor);
-				console.log(JSON.stringify(changes_));
+				console.log("text changes");
+				console.log(changes_[1]);
 
+				var dChanges = textChanges(oldNodes.textContent, el.textContent, el, cursor);
 
-				colorize($('#testArea')[0], changes_[1], color);
+				if (changes_[1].length == 1) { // no changes. there is either a 1 or 0 at the end, so the minimum size is 1
+					if (nodeTreesAreEqual(structure, nodeTree(el, color, true, false))) {
+						for (var i = 0; i < 10; i++) console.log("html changed, but not changes");
+						oldNodes.innerHTML = val;
+						setTimeout(check, timeOut);
+						return;
+					}
+				}
 
-				form2(el);
+				console.log('------------------------------------------------');
+
+				colorize($('#testArea')[0], dChanges, color);
+
+				form2(el, color);
 				form(el);
-
-
-
-
 
 				from = oldNodes;
 				
-				old = $('#testArea')[0].textContent;
+
+				lastStructure = structure.cloneNode();
+				lastStructure.innerHTML = structure.innerHTML;
+
+				lastText = text;
+
+				var gotText = executeChanges(text, changes_[1]);
+
+				text = getText(el);
+
+				if (gotText != text) {
+					alert('text problem');
+					console.log(text);
+					console.log(gotText);
+				}
 				preForm = getNode();
 				
+				//console.log("before", structureCopy.outerHTML);
+				applyTextChangesToStructure(structure, getText(oldNodes), changes_[1], color, getText(el));
+				form2(structure, color, true);
+				form(structure);
+				//console.log("after", structureCopy.outerHTML);
 
 				oldNodes = getNode();
 				lastPush = getNode();
-				lastStructure = nodeTree(oldNodes, true, false);
 
 				lastChanges = changes_;
 
 				changes_.push(edit);
 
-				var newStructure = nodeTree(el, true, false);
-
-
-				var structurualChange = changes_[0];
-				if (structurualChange) {
-					structurualChange = [changes_[0][0], createNodeTree(changes_[0][1])];
-
-					setStructureDifferences(structure, structurualChange);
-					colorizeStructure(changes_[2], structure);
-					form2(structure, true);
-					form(structure);
-				}
+				
 				
 
+				console.log('------------------------------------------------');
+
+				
+				//console.log(changes_);
+				console.log(JSON.stringify(changes_));
+
+
+
+				var newStructure = nodeTree(el, color, true, false);
 				
 
-				if (!nodeTreesAreEqual(newStructure, structure)) {
+				if (!strippedNodeTreesAreEqual(newStructure, structure)) {
 					console.log(el.outerHTML);
-					console.log(nodeTree(el, true, false));
-					alert('problem');
-					console.log(structurualChange);
+					console.log(nodeTree(el, color, true, false));
+					alert('fail');
 					console.log('problem. testArea is:');
 					console.log(newStructure);
 					console.log("structure");
@@ -628,7 +634,8 @@
 		}
 
 		function applyResp(msg) {
-			var structLen = structureLength(createNodeTree(msg[1]))
+			var nodeTreeFromServer = createNodeTree(msg[1]);
+			var structLen = structureLength(nodeTreeFromServer) + max(0, nodeTreeFromServer.childNodes.length - 1);
 			if (structLen != msg[2].length) {
 				console.log(msg[1] + " has length of " + structLen + " not " + msg[2].length);
 				alert("LengthMismatch");
@@ -645,7 +652,7 @@
 			}
 
 			var fromServer = createNodeTree(msg[1]);
-			if ( !nodeTreesAreEqual(fromServer, lastStructure)  || msg[2] != old) {
+			if ( !strippedNodeTreesAreEqual(fromServer, structure)  || msg[2] != text) {
 
 				var pos = getCursor3();
 
@@ -655,16 +662,12 @@
 
 				socket.emit('clientError', JSON.stringify({from:from.innerHTML, to:preForm.innerHTML, afterForm:lastPush.innerHTML, got:got, change:lastChanges}));
 
-				$('#testArea')[0].outerHTML = msg[1];
-				setText($('#testArea')[0], msg[1], msg[2]);
-
-
-				if (msg[2] == old) {
+				if (msg[2] == text) {
 					console.log("structure differed");
 					console.log("from server:");
-					console.log(msg[1]);
+					console.log(fromServer);
 					console.log("from us");
-					console.log(lastStructure.outerHTML);
+					console.log(structure);
 
 					console.log("diffs");
 					var el = document.getElementById('testArea');
@@ -675,12 +678,25 @@
 					console.log("from server:");
 					console.log(msg[2]);
 					console.log("from us");
-					console.log(old);
+					console.log(text);
 
 					console.log("diffs from us to server");
-					console.log(textChanges(old, msg[2]));
+					console.log(textChanges(text, msg[2], $('#testArea')[0], pos));
 				}
 
+
+				$('#testArea')[0].outerHTML = msg[1];
+				setText($('#testArea')[0], msg[1], msg[2]);
+
+				form2(structure, msg[4], true);
+				form(structure);
+
+
+				oldNodes = getNode();
+				structure = nodeTree($('#testArea')[0], color, true, false);
+				text = msg[2];
+
+				alert('difference');
 				
 
 				setCursor3(pos);
@@ -692,17 +708,18 @@
 			msg = JSON.parse(msg);
 
 			if (expecting[0] == "resp" && expecting[1] == msg[3]) {
-				console.log("got expected");
+				//console.log("got expected");
 			}
 			else {
 				console.log("didn't get expecting");
 				console.log("expecting: " + JSON.stringify(expecting));
 				console.log("got a resp with " + msg[3]);
+				alert("didn't get expecting");
 			}
 
 			$('#status')[0].style.backgroundColor = "green";
 
-			console.log('resp ' + edit + " vs " + msg[3]);
+			//console.log('resp ' + edit + " vs " + msg[3]);
 
 			var next = nextEdit(edit);
 			if (msg[3] != next) {
@@ -718,7 +735,7 @@
 			applyPreviousEdits();
 
 			  
-			old = msg[2];
+			text = msg[2];
 			setTimeout(check, timeOut);
 			expecting = ['update', nextEdit(edit)];
 		});
@@ -727,80 +744,149 @@
 		function applyUpdate(msg) {
 			var pos = getCursor3();
 
-			var textChanges_ = JSON.parse(msg[0])[1];
+			var changes_ = JSON.parse(msg[0]);
+			var textChanges_ = changes_[1];
 
-			$('#testArea')[0].outerHTML = msg[1];
-			setText($('#testArea')[0], msg[1], msg[2]);
+			/*var structurualChange = changes_[0];
+			if (structurualChange) {
+				structurualChange = [changes_[0][0], createNodeTree(changes_[0][1])];
 
-			old = msg[2];
+				setStructureDifferences(structure, structurualChange);
+				colorizeStructure(changes_[2], structure, msg[4]);
+				form2(structure, color, true);
+				form(structure);
+			}
 
-			var isPost = textChanges_[textChanges_.length-1];
-			for (var i = 0; i < textChanges_.length - 1; i++) {
-				var change = textChanges_[i];
+			text = executeChanges(text, textChanges_);
 
-				for (var n = 0; n < pos.length; n++) {
-					var p = pos[n];
-					if (change[0] <= p[0]) {
-						if (change.length == 2) {
-							if (typeof change[1] == "string") {
-								p[0] += change[1].length;
+			if (!strippedNodeTreesAreEqual(structure, createNodeTree(msg[1])) || text != msg[2]) {
+				alert('update problem');
+			}*/
+
+
+			//structure = nodeTree($('#testArea')[0], color, true, false);
+			//text = msg[2];
+
+			var oldText = lastText;
+			lastText = executeChanges(lastText, textChanges_);
+			applyTextChangesToStructure(lastStructure, oldText, textChanges_, msg[4], lastText);
+
+			form2(lastStructure, msg[4], true);
+			form(lastStructure);
+
+			if (pos) {
+				var isPost = textChanges_[textChanges_.length-1];
+				for (var i = 0; i < textChanges_.length - 1; i++) {
+					var change = textChanges_[i];
+
+					for (var n = 0; n < pos.length; n++) {
+						var p = pos[n];
+						if (change[0] <= p[0]) {
+							if (change.length == 2) {
+								if (typeof change[1] == "string") {
+									p[0] += change[1].length;
+								}
+								else {
+									p[0] -= change[1];
+								}
 							}
 							else {
-								p[0] -= change[1];
+								p[0] += change[1].length - change[2];
 							}
-						}
-						else {
-							p[0] += change[1].length - change[2];
-						}
 
-						if (p[0] < change[0]) {
-							p[0] = change[0];
+							if (p[0] < change[0]) {
+								p[0] = change[0];
+							}
 						}
 					}
 				}
 			}
 			
+			
+
+			expecting = [expecting[0], nextEdit(edit)];
+
 			setCursor3(pos);
 		}
 
-		socket.on('update', function(msg) {
-				
-				msg = JSON.parse(msg);
+		socket.on('update', function(msg) {			
+			msg = JSON.parse(msg);
 
-				if (expecting[0] == "update" && expecting[1] == msg[3]) {
-					console.log("got expected");
-				}
-				else {
-					alert("didn't get expected");
-					console.log("didn't get expecting");
-					console.log("expecting " + JSON.stringify(expecting));
-					console.log("got update with " + msg[3]);
-				}
+			var gotExpecting = expecting[0] == "update" && expecting[1] == msg[3];
 
-				console.log('update ' + edit + " vs " + msg[3]);
+			if (gotExpecting) {
+				console.log("got expected");
 
-				var next = nextEdit(edit);
-				if (msg[3] != next) {
-					edits[msg[3]] = {msg:msg, func:applyUpdate};
-					return;
-				}
+				lastText = text;
+				lastStructure = structure;
+			}
+			else {
+				console.log("didn't get expecting");
+				console.log("expecting " + JSON.stringify(expecting));
+				console.log("got update with " + msg[3]);
+				console.log(JSON.stringify(msg));
+				alert("didn't get expected");
+			}
 
-				edit = msg[3];
+			console.log('update ' + edit + " vs " + msg[3]);
 
-				applyUpdate(msg);
+			var next = nextEdit(edit);
+			if (msg[3] != next) {
+				edits[msg[3]] = {msg:msg, func:applyUpdate};
+				return;
+			}
 
-				applyPreviousEdits();
+			var el = document.getElementById("testArea");
+			var changed = el.innerHTML != oldNodes.innerHTML, differences;
+			console.log("changed: ", changed);
 
-				oldNodes = getNode();
-				lastStructure = nodeTree(oldNodes, true, false);
+			if (changed) {
+				differences = getNodeChanges(structure, el, getCursor3());
+				console.log("change between inp and update");
+				console.log(differences);
+			}
 
-				structure = nodeTree($('#testArea')[0], true, false);
+			edit = msg[3];
 
-				expecting = [expecting[0], nextEdit(edit)];
-				
-				// todo check for changes here, otherwise they'll be forgotten,
-				// because:   changes_ = changes(old, val);
-				// if there are changes, they'll have to merged
+			applyUpdate(msg);
+
+			applyPreviousEdits();
+
+
+			if (!gotExpecting) {
+				alert("didn't get expecting");
+			}
+
+
+			if (lastText != msg[2]) {
+				console.log("updated text deosn't match");
+				console.log("from server", msg[2]);
+				console.log("from us    ", lastText);
+
+				alert("updated text doesn't match");
+			}
+
+			if (!strippedNodeTreesAreEqual(lastStructure, createNodeTree(msg[1]))) {
+				console.log("updated structure deosn't match");
+				console.log("from server", strip(createNodeTree(msg[1])));
+				console.log("from us    ", strip(lastStructure));
+
+				alert("updated structure doesn't match");
+			}
+
+
+			structure = lastStructure;
+			text = lastText;
+
+			$('#testArea')[0].outerHTML = structure.outerHTML;
+			setText($('#testArea')[0], structure, text);
+
+			oldNodes = getNode();
+
+			
+			// todo check for changes here, otherwise they'll be forgotten,
+			// because:   changes_ = changes(old, val);
+			// if there are changes, they'll have to merged
 		});
 		
 		socket.on('init', function(msg) {
@@ -815,6 +901,21 @@
 			structure = createNodeTree(msg['struct']);
 			users = msg['currentUsers'];
 
+			var len = structureLength(structure) + max(0, structure.childNodes.length - 1);
+			if (len != text.length) {
+				alert('length mismatch on init');
+
+				var newText = msg['text'];
+				if (len > newText.length) {
+					for (var i = 0 ; i < len - newText.length; i++) newText += " ";
+				}
+				else {
+					newText = newText.substring(0, len);
+				}
+
+				socket.emit('LengthMismatch', newText);
+			}
+
 			edit = msg['start'];
 			expecting = ['update', nextEdit(edit)];
 
@@ -824,13 +925,12 @@
 			$('#testArea')[0].outerHTML = structure.outerHTML;
 			setText($('#testArea')[0], structure, text);
 
-			old = msg['text'];
 			color = msg['color'];
 			setTimeout(check, timeOut);
 			
 			oldNodes = getNode();
 			lastPush = getNode();
-			lastStructure = nodeTree(oldNodes, true, false);
+			lastStructure = nodeTree(oldNodes, color, true, false);
 
 			$('#title').html(msg['title']);
 
@@ -953,16 +1053,6 @@
 
 			userLookup[key] = msg[key];
 		});
-
-		function nextNode(node, stopAt) {
-			if (node.nextSibling != undefined) { return node.nextSibling; }
-			
-			node = node.parentNode;
-			if (node == stopAt) return;
-			
-			return nextNode(node);
-		}
-
 
 		function onCursorChange(msg) {
 			if (!userLookup) return;

@@ -124,7 +124,7 @@ module.exports = {
       
 
       socket.on('inp', function(msg) {
-        //console.log("got msg" + msg);
+        console.log("got msg" + msg + " from user " + socket.request.user);
         if (socket.doc) {
           var doc = socket.doc;
           documentChanger.emit(doc, [socket, {msg:msg, documentId:doc}]);
@@ -135,7 +135,7 @@ module.exports = {
         msg = JSON.parse(msg);
         if (socket.doc) {
           var doc = socket.doc;
-          //console.log("got msg" + msg[0]);
+          console.log("got msg" + msg[0] + " from user " + socket.request.user);
           documentChanger.emit(doc, [socket, {msg:msg[0], documentId:doc, cursor:msg[1]}]);
         }
       });
@@ -422,33 +422,30 @@ module.exports = {
       var doc = documents[documentId];
 
 
+      var col = colors[ doc[3][socket.request.user]['color']%colors.length ];
       changejs.setDocument(doc[0].parentWindow.window.document);
-      changejs.setColor(colors[ doc[3][socket.request.user]['color'] ]);
+      //changejs.setColor(col);
 
-      //console.log("server: " + doc[8]['start'] + "; client: " + changes[3]);
+      var serverStart = doc[8]['start'], clientStart = changes[3];
+      if (serverStart != clientStart) {
+        console.log("server: " + serverStart + "; client: " + clientStart);
+      }
 
       doc[8]['start'] = (doc[8]['start']+1)%10;
 
-      if (changes[0]) {
+      var oldText = doc[1];
+      doc[1] = changejs.applyTextChanges(doc[1], changes[1]);
 
-        changes[0][1] = changejs.createNodeTree(changes[0][1]);
-
-
-        changejs.applyStructuralChanges(doc[0].parentWindow.window.document.getElementById('testArea'), changes[0]);
-      }
-
-      changejs.colorizeStructure(changes[2], doc[0].parentWindow.window.document.getElementById('testArea'));
-
-
-      changejs.form2(doc[0].parentWindow.window.document.getElementById('testArea'), true);
+      changejs.applyTextChangesToStructure(doc[0].parentWindow.window.document.getElementById('testArea'), oldText, changes[1], col, doc[1]);
+      changejs.form2(doc[0].parentWindow.window.document.getElementById('testArea'), col, true);
       changejs.form(doc[0].parentWindow.window.document.getElementById('testArea'));
 
 
       //console.log("applying " + JSON.stringify(changes[1]) + " to " + documents[documentId][1]);
-      documents[documentId][1] = changejs.applyTextChanges(doc[1], changes[1]);
+      
       //console.log("gets us: " + documents[documentId][1]);
 
-      var thing = [msg, doc[0].parentWindow.window.document.getElementById('testArea').outerHTML, doc[1], doc[8]['start']];
+      var thing = [msg, doc[0].parentWindow.window.document.getElementById('testArea').outerHTML, doc[1], doc[8]['start'], col];
 
       socket.emit('resp', JSON.stringify(thing));
       socket.broadcast.to(socket.doc).emit('update', JSON.stringify(thing));

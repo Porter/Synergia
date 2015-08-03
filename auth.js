@@ -164,7 +164,7 @@ module.exports = {
 
 
       notifier.sendConfirmation(userInfo['email'], userInfo);
-      res.end("You now need to confirm your email, check you inbox");
+      res.end("You now need to confirm your email, check your inbox");
       return;
 
 
