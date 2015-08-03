@@ -7,50 +7,159 @@
 
 
 <style>
+
+
+
+#LS_Heading{
+  font-size: 25px;
+  font-family: "Andale Mono";
+  color: rgb( 255, 255, 255 );
+  line-height: 1.11;
+  text-align: center;
+  -moz-transform: matrix( 1.70449868947994, 0, 0, 1.72443193254442, 0, 0);
+  -webkit-transform: matrix( 1.70449868947994, 0, 0, 1.72443193254442, 0, 0);
+  width: 50%;
+  position:absolute;
+  left:50%;
+  margin-left: -24%;
+  top:440;
+  z-index: 16;
+
+	}
+
+	#Back_heading{
+ 
+  background-image: -moz-linear-gradient( -90deg, rgb( 105, 105, 230) 0%, rgb( 0,0,102) 100%);
+  background-image: -webkit-linear-gradient( -90deg, rgb(105, 105, 230) 0%, rgb(0, 0, 102) 100%);
+  border-radius: 10px 10px 10px 10px;
+  width: 40%;
+  position: absolute;
+  margin-left:30%;
+  top:430px;
+  height: 81px;
+  z-index: 4;
+	}
 	
+	#image{
+		width:100%;
+		height:60%;
+		
+		top:0px;
+		z-index:-1;
+	}
+	
+	#Textlogin{
+		background-color: black;
+		font-family: "Courier";
+		text-align: center;
+		width:80px;
+		padding:5px;
+		color:white;
+		font-size:18px;
+	
+
+	}
+
+	#Login{
+		position:absolute;
+		margin-left: 85%;
+		top:10px;
+		z-index: 8;
+	}
+
+	#Signup{
+		position:absolute;
+		margin-left:75%;
+		top:540px;
+
+	}
+
+	#TextSignup{
+text-align: center;
+font-size: 20px;
+font-family: "Palatino";
+background-color: rgb(200,200,200);
+color:black;
+border-radius: 0px;
+width:200px;
+padding-top:10px;
+padding-bottom:10px;
+padding-left: 5px;
+padding-right: 5px;
+	}
+
+#TextAdv{
+	position: absolute;
+	font-family: "Palatino";
+	font-size: 20px;
+	color:black;
+	top:560px;
+	margin-left: 12%;
+	line-height:50px;
+	text-align: center;
+}
+
+span{
+	font-size: 30px;
+	font-weight: bold;
+}
+	#Backcolor{
+		background-color: rgb(220,220,220);
+		height:50%;
+		width:100%;
+		z-index: -4;
+	}
+
 	#root {
 		cursor: pointer;
+	}
+	#submit{
+		background-color: rgb(45,45,45)
+		color:white;
 	}
 
 	input {
 		margin: 5px;
 	}
-</style>
-<center>
-<h2 style="margin-top:100px"> LoginL </h3>
 
+</style>
+
+<body>
+
+<div id="Back_heading"></div>
+<h1 id="LS_heading">Local Synergie</h1>
+<img id="image"src="YosBackground.jpg" alt="YosBackground">
+
+<div id="Login">
+<h2 id="Textlogin"> Login </h3>
 <form action="/login" method="post">
 <input placeholder="username" type="text" name="username"><br/>
 <input placeholder="password" type="password" name="password"><br/>
 <input type="submit">
 </form>
-
-<br>
-</center>
-
-<div style="position: relative; margin-left:45%; width:10%;">
-	<button id="button" onclick="loginG()" style="opacity: 0; z-index: 10000; left: 0px; top: 0px; position: absolute; cursor: pointer; outline: 0px; width: 114px; height: 36px;">Sign in with Google</button>
-	<center><iframe frameborder="0" hspace="0" marginheight="0" marginwidth="0" scrolling="no" style="position: static; top: 0px; width: 114px; margin: 0px; border-style: none; left: 0px; visibility: visible; height: 36px;" tabindex="0" vspace="0" width="100%" id="iframe" name="I0_1437008829441" src="https://apis.google.com/u/0/_/widget/render/signin" data-gapiattached="true" title="Sign in with Google"></iframe></center>
 </div>
 
-<center>
-<br>
-<hr>
+<div id="Backcolor"></div>
 
-<h3> Sign up </h3>
 
-<form action="/createUser" method="post">
-<input id="user" placeholder="username" type="text" name="username"> <br/>
-<input id="pass" placeholder="email" type="text" name="email"> <br/>
-<input id="mail" placeholder="password" type="password" name="password"> <br/>
-
+<div id="Signup">
 	
-<input type="submit">
-</form>
 
-</center>
+		<h3 id="TextSignup"> Sign up </h3>
+		<form action="/createUser" method="post">
+		<input id="user" placeholder="username" type="text" name="username"> <br/>
+		<input id="pass" placeholder="email" type="text" name="email"> <br/>
+		<input id="mail" placeholder="password" type="password" name="password"> <br/>
+		<input type="submit">
+		</form>
 
+		<button id="button" onclick="loginG()" style="opacity: 0; z-index: 10000;  cursor: pointer; outline: 0px; width: 114px; position:absolute; height: 36px;">Sign in with Google</button>
+		<iframe frameborder="0" hspace="0" marginheight="0" marginwidth="0" scrolling="no" style="  width: 114px; margin: 0px; border-style: none;  visibility: visible; height: 36px;" tabindex="0" vspace="0" width="100%" id="iframe" name="I0_1437008829441" src="https://apis.google.com/u/0/_/widget/render/signin" data-gapiattached="true" title="Sign in with Google"></iframe>
 
+</div>
+
+<p id="TextAdv"> <span>People are meant to work together<br></span>Connect to the beauty of your Local Community through <br> Dynamic Real-Time conversations and Information Pages</p>
+</body>
 
 <script>
 	
