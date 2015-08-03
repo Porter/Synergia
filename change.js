@@ -1307,6 +1307,31 @@ function applyTextChangesToStructure(structure, originalText, textChanges_, colo
 
 if (typeof exports != "undefined") exports.applyTextChangesToStructure = applyTextChangesToStructure;
 
+function applyOffsets(changes1, changes2) {
+	for (var i = 0; i < changes2.length - 1; i++) {
+		var change2 = changes2[i];
+		for (var n = 0; n < changes1.length - 1; n++) {
+			var change1 = changes1[n];
+
+			var offset = 0;
+			if (change1.length == 2) {
+				if (typeof change1[1] == "string") {
+					offset = change1[1].length;
+				}
+				else {
+					offset = -change1[1];
+				}
+			}
+			else {
+				offset = change1[1].length - change1[2];
+			}
+
+			console.log(JSON.stringify(change1), JSON.stringify(change2));
+			change2[0] += offset;
+		}
+	}
+}
+
 function getNodeChanges(node1, node2, cursor) {
 	var node1 = node1 || $('#section1')[0];
 	var node2 = node2 || $('#section2')[0];

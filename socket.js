@@ -445,8 +445,14 @@ module.exports = {
       
       //console.log("gets us: " + documents[documentId][1]);
 
-      var thing = [msg, doc[0].parentWindow.window.document.getElementById('testArea').outerHTML, doc[1], doc[8]['start'], col];
+      var outerHTML = doc[0].parentWindow.window.document.getElementById('testArea').outerHTML;
+      var thing = [msg, outerHTML, doc[1], doc[8]['start'], col];
 
+      console.log("----------------");
+      //console.log("updating " + JSON.stringify(io.nsps['/'].adapter.rooms[socket.doc]));
+      console.log("replying to " + socket.request.user, doc[8]['start']);
+      console.log(outerHTML);
+      console.log("----------------");
       socket.emit('resp', JSON.stringify(thing));
       socket.broadcast.to(socket.doc).emit('update', JSON.stringify(thing));
 

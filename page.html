@@ -852,12 +852,6 @@
 
 			applyPreviousEdits();
 
-
-			if (!gotExpecting) {
-				alert("didn't get expecting");
-			}
-
-
 			if (lastText != msg[2]) {
 				console.log("updated text deosn't match");
 				console.log("from server", msg[2]);
@@ -875,6 +869,18 @@
 			}
 
 
+			if (!gotExpecting) {
+
+				console.log(JSON.parse(msg[0])[1]);
+				console.log("b4", JSON.stringify(lastChanges[1]));
+				applyOffsets(JSON.parse(msg[0])[1], lastChanges[1]);
+				console.log("after", JSON.stringify(lastChanges[1]));
+
+				var newText = executeChanges(lastText, lastChanges[1]);
+				applyTextChangesToStructure(lastStructure, lastText, lastChanges[1], color, newText);
+				lastText = newText;
+			}
+
 			structure = lastStructure;
 			text = lastText;
 
@@ -882,6 +888,9 @@
 			setText($('#testArea')[0], structure, text);
 
 			oldNodes = getNode();
+
+			console.log(text);
+			console.log("done updating");
 
 			
 			// todo check for changes here, otherwise they'll be forgotten,
