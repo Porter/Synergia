@@ -708,13 +708,12 @@
 			msg = JSON.parse(msg);
 
 			if (expecting[0] == "resp" && expecting[1] == msg[3]) {
-				//console.log("got expected");
+				console.log("got expected resp");
 			}
 			else {
 				console.log("didn't get expecting");
 				console.log("expecting: " + JSON.stringify(expecting));
 				console.log("got a resp with " + msg[3]);
-				alert("didn't get expecting");
 			}
 
 			$('#status')[0].style.backgroundColor = "green";
@@ -741,6 +740,36 @@
 
 			reply(['resp', edit]);
 		});
+
+		function applyTextOffsetToCursor(cursor, textChanges_) {
+			if (cursor) {
+				var isPost = textChanges_[textChanges_.length-1];
+				for (var i = 0; i < textChanges_.length - 1; i++) {
+					var change = textChanges_[i];
+
+					for (var n = 0; n < cursor.length; n++) {
+						var p = cursor[n];
+						if (change[0] <= p[0]) {
+							if (change.length == 2) {
+								if (typeof change[1] == "string") {
+									p[0] += change[1].length;
+								}
+								else {
+									p[0] -= change[1];
+								}
+							}
+							else {
+								p[0] += change[1].length - change[2];
+							}
+
+							if (p[0] < change[0]) {
+								p[0] = change[0];
+							}
+						}
+					}
+				}
+			}
+		}
 
 
 		function applyUpdate(msg) {
@@ -776,35 +805,12 @@
 			form2(lastStructure, msg[4], true);
 			form(lastStructure);
 
-			if (pos) {
-				var isPost = textChanges_[textChanges_.length-1];
-				for (var i = 0; i < textChanges_.length - 1; i++) {
-					var change = textChanges_[i];
+			$('#testArea')[0].outerHTML = lastStructure.outerHTML;
+			setText($('#testArea')[0], lastStructure, lastText);
 
-					for (var n = 0; n < pos.length; n++) {
-						var p = pos[n];
-						if (change[0] <= p[0]) {
-							if (change.length == 2) {
-								if (typeof change[1] == "string") {
-									p[0] += change[1].length;
-								}
-								else {
-									p[0] -= change[1];
-								}
-							}
-							else {
-								p[0] += change[1].length - change[2];
-							}
-
-							if (p[0] < change[0]) {
-								p[0] = change[0];
-							}
-						}
-					}
-				}
-			}
 			
 			
+			applyTextOffsetToCursor(pos, textChanges_);
 
 			expecting = [expecting[0], nextEdit(edit)];
 
@@ -817,7 +823,7 @@
 			var gotExpecting = expecting[0] == "update" && expecting[1] == msg[3];
 
 			if (gotExpecting) {
-				console.log("got expected");
+				console.log("got expected update");
 
 				lastText = text;
 				lastStructure = structure;
@@ -827,7 +833,6 @@
 				console.log("expecting " + JSON.stringify(expecting));
 				console.log("got update with " + msg[3]);
 				console.log(JSON.stringify(msg));
-				alert("didn't get expected");
 			}
 
 			console.log('update ' + edit + " vs " + msg[3]);
@@ -860,6 +865,9 @@
 				console.log("from us    ", lastText);
 
 				alert("updated text doesn't match");
+
+				$('#testArea')[0].outerHTML = structure.outerHTML;
+				setText($('#testArea')[0], structure, text);
 			}
 
 			if (!strippedNodeTreesAreEqual(lastStructure, createNodeTree(msg[1]))) {
@@ -868,6 +876,9 @@
 				console.log("from us    ", strip(lastStructure));
 
 				alert("updated structure doesn't match");
+
+				$('#testArea')[0].outerHTML = structure.outerHTML;
+				setText($('#testArea')[0], structure, text);
 			}
 
 
@@ -881,6 +892,17 @@
 				var newText = executeChanges(lastText, lastChanges[1]);
 				applyTextChangesToStructure(lastStructure, lastText, lastChanges[1], color, newText);
 				lastText = newText;
+
+				var c = getCursor3();
+
+				form2(lastStructure, msg[4], true);
+				form(lastStructure);
+
+				$('#testArea')[0].outerHTML = lastStructure.outerHTML;
+				setText($('#testArea')[0], lastStructure, lastText);
+
+				setCursor3(c);
+
 			}
 
 			
@@ -889,7 +911,7 @@
 
 
 			if (changed) {
-				applyOffsets(lastChanges[1], differences[1]);
+				if (lastChanges) applyOffsets(lastChanges[1], differences[1]);
 
 				var structureCopy = lastStructure.cloneNode();
 				structureCopy.innerHTML = lastStructure.innerHTML;
@@ -903,14 +925,12 @@
 				$('#testArea')[0].outerHTML = structureCopy.outerHTML;
 				setText($('#testArea')[0], structureCopy, newText);
 			}
-			else {
-				$('#testArea')[0].outerHTML = structure.outerHTML;
-				setText($('#testArea')[0], structure, text);
-			}
+			
 
 			oldNodes = getNode();
 
 			console.log(text);
+			console.log($('#testArea')[0].textContent);
 			console.log("done updating");
 
 			socket.emit('updateRecieved', ['update', edit]);

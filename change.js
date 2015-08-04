@@ -1316,14 +1316,16 @@ function applyOffsets(changes1, changes2) {
 			var offset = 0;
 			if (change1.length == 2) {
 				if (typeof change1[1] == "string") {
-					offset = change1[1].length;
+					if (change1[0] <= change2[0]) offset = change1[1].length;
 				}
 				else {
-					offset = -change1[1];
+					if (change1[0] + change1[1] < change2[0]) offset = -change1[1];
+					else if (change1[0] <= change2[0]) offset = -(change2[0] - change1[0]);
 				}
 			}
 			else {
-				offset = change1[1].length - change1[2];
+				var range = change1[1].length - change1[2];
+				if (change1[0] <= change2[0]) offset = range;
 			}
 
 			console.log(JSON.stringify(change1), JSON.stringify(change2));
@@ -1331,6 +1333,8 @@ function applyOffsets(changes1, changes2) {
 		}
 	}
 }
+
+if (typeof exports != "undefined") exports.applyOffsets = applyOffsets;
 
 function getNodeChanges(node1, node2, cursor) {
 	var node1 = node1 || $('#section1')[0];

@@ -414,6 +414,7 @@ module.exports = {
         if (p < low) low = p;
       }
 
+      if (low == -1) return low;
       if (high - low > editCycle/2) { return high; }
       else { return low; }
     }
@@ -435,8 +436,14 @@ module.exports = {
       doc[2][socket.request.user]['lastConfirmedEdit'] = msg[1];
 
       var jk = usersOnDoc.map(function(user) { return doc[2][user]['lastConfirmedEdit']; });
-      console.log(jk, smallestEdit(jk));
-      var diff = doc[8]['start'] - smallestEdit(jk);
+      var smallest = smallestEdit(jk);
+      console.log(jk, smallest);
+
+
+      var diff = doc[8]['start'] - smallest;
+      if (smallest == -1) diff = 0; // if smallest is -1, that means there is some user that hasn't confirmed any edits yet
+
+
       if (diff < 0) diff += editCycle;
 
       console.log(diff);
@@ -493,10 +500,30 @@ module.exports = {
       var serverStart = doc[8]['start'], clientStart = changes[3];
       if (serverStart != clientStart) {
         console.log("server: " + serverStart + "; client: " + clientStart);
+
+        var diff = serverStart - clientStart;
+        if (diff < 0) diff += editCycle;
+
+        var edits = doc[8]['edits'];
+        if (diff > edits.length) {
+          console.log("we don't have enough stored edits".red);
+          console.log(doc[8]['edits']);
+          console.log(diff);
+        }
+        else {
+          console.log(edits);
+          msg = JSON.parse(msg);
+          for (var i = edits.length - diff; i < edits.length; i++) {
+            console.log("applying edit", edits[i][1]);
+            changejs.applyOffsets(edits[i][1], changes[1]);
+          }
+          msg[1] = changes[1];
+          msg = JSON.stringify(msg);
+        }
       }
 
       doc[8]['start'] = (doc[8]['start']+1)%editCycle;
-      doc[8]['edits'].push(msg);
+      doc[8]['edits'].push(changes);
 
       var oldText = doc[1];
       doc[1] = changejs.applyTextChanges(doc[1], changes[1]);
