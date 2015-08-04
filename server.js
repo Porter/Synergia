@@ -90,6 +90,8 @@ app.use('/change.js', express.static(__dirname + '/change.js'));
 app.use('/tinycolor.js', express.static(__dirname + '/tinycolor.js'));
 app.use('/jquery-1.11.1.js', express.static(__dirname + '/jquery-1.11.1.js'));
 app.use('/socket.io-1.2.0.js', express.static(__dirname + '/socket.io-1.2.0.js'));
+app.use('/socket.io-1.2.0.js', express.static(__dirname + '/socket.io-1.2.0.js'));
+app.use('/YosBackground.jpg', express.static(__dirname + '/YosBackground.jpg'));
 
 app.use('/test2', express.static(__dirname + '/test.html'));
 

@@ -1,3 +1,6 @@
+
+var editCycle = 10;
+
 function getBody(documentEl) {
   return documentEl.getElementsByTagName("body")[0];
 }
@@ -35,7 +38,6 @@ module.exports = {
     function saveDocument(db, id, doc, callback) {
       var documentsCollection = db.collection('documents');
 
-      // var doc = [structure, text, users, userColors, {}, name, id, userLookup];
       documentsCollection.update( { _id : new BSON.ObjectID(id)}, { '$set': {
         struct: doc[0].documentElement.getElementsByTagName("body")[0].innerHTML,
         val: doc[1], 
@@ -121,6 +123,8 @@ module.exports = {
         connected--;
 
       });
+
+      socket.on('updateRecieved', function (msg) { confirm(socket, msg)} );
       
 
       socket.on('inp', function(msg) {
@@ -234,6 +238,7 @@ module.exports = {
     }); // socket on connection
 
     function init(msg, channelsCallback) {
+      console.log('initing ' + msg[0].request.user);
       var socket = msg[0];
       var documentId = msg[1];
 
@@ -242,7 +247,7 @@ module.exports = {
         function(callback) {
 
 
-          if (!documents[documentId]) { // if it's not loaded in ram
+          if (!documents[documentId]) { // if it's not loaded 
             
             var collection = db.collection('documents');
             collection.findOne( { _id:new BSON.ObjectID(documentId) }, function(err, doc) { // load it from mongodb
@@ -256,6 +261,7 @@ module.exports = {
 
               var structure, text, users, userColors;
               if (doc) {
+                console.log("loaded doc for first time");
                 var structure = jsdom.jsdom(doc.struct);
                 var text = doc.val;
                 var currentUsers = {};
@@ -268,6 +274,7 @@ module.exports = {
                 var keys = Object.keys(userColors);
                 keys = keys.map(function (key) { return new BSON.ObjectID(key); });
 
+                keys.push(new BSON.ObjectID(socket.request.user));
 
                 var userCollection = db.collection('g');
                 userCollection.find({_id : {'$in': keys}}, {_id:1, displayName:1, user:1}).toArray(function (e, replies) {
@@ -281,6 +288,8 @@ module.exports = {
 
                     userLookup[reply['_id']] = {'displayName':reply['displayName'], 'user':reply['user']}
                   }
+
+                  console.log('initial userLookup is :' + JSON.stringify(userLookup));
 
                   var doc = [structure, text, currentUsers, userColors, {}, name, id, userLookup, edits];
                   documents[documentId] = doc;
@@ -305,6 +314,7 @@ module.exports = {
             var doc = documents[documentId];
 
             if ( !doc[7][socket.request.user] ) {
+              console.log(socket.request.user + " doesn't exist in userLookup");
               var userCollection = db.collection('g');
               userCollection.findOne( {_id: BSON.ObjectID(socket.request.user) }, {_id:1, displayName:1, user:1}, function(e, reply) {
 
@@ -322,6 +332,7 @@ module.exports = {
                 reply['_id'] = reply['_id'].toString();
                 if (reply['user'] && reply['user'].indexOf(':') != -1) { reply['user'] = reply['user'].substring(3); }
 
+                console.log("setting " + socket.request.user + " to " + JSON.stringify(reply));
                 doc[7][socket.request.user] = reply;
 
                 var msg = {}
@@ -333,7 +344,7 @@ module.exports = {
 
               });
             }
-            else { callback(); }
+            else { console.log(socket.request.user + " already exists in userLookup: " + JSON.stringify(doc[7][socket.request.user])); callback(); }
           }
         }],
 
@@ -362,6 +373,15 @@ module.exports = {
 
           }
 
+          var userInfo = doc[2][socket.request.user];
+          if (!userInfo) {
+            uc = {color: color, lastConfirmedEdit:-1, x:1}; // color of color, only logged in from one browser/tab
+            doc[2][socket.request.user] = uc;
+          } 
+          else {
+            userInfo['x']++;
+          }
+
           var d= {};
           d["struct"] = doc[0].documentElement.getElementsByTagName("body")[0].innerHTML;
           d["text"] = doc[1];
@@ -376,19 +396,63 @@ module.exports = {
           socket.broadcast.to(documentId).emit('users', JSON.stringify( {added: socket.request.user, user:{color:color, x:1}}  ));
           socket.emit('init', JSON.stringify(d) );
 
-          var userColor = doc[2][socket.request.user];
-          if (!userColor) {
-            uc = {color: color, x:1}; // color of color, only logged in from one browser/tab
-            doc[2][socket.request.user] = uc;
-          } 
-          else {
-            userColor['x']++;
-          }
-
+          
+          console.log('done initing ' + msg[0].request.user);
           channelsCallback();
         }
       );
     }
+
+    function smallestEdit(arr) {
+      if (arr.length == 0) return;
+      var high = arr[0], low = arr[0];
+      for (var i = 1; i < arr.length; i++) {
+
+        var p = arr[i];
+
+        if (p > high) high = p;
+        if (p < low) low = p;
+      }
+
+      if (high - low > editCycle/2) { return high; }
+      else { return low; }
+    }
+
+
+    function confirm(socket, msg) {
+      var doc = documents[socket.doc];
+
+      var usersOnDoc = Object.keys(doc[2]);
+      var poses = {};
+      for (var i = 0; i < usersOnDoc.length; i++) {
+        poses[usersOnDoc[i]] = doc[2][usersOnDoc[i]]['lastConfirmedEdit'];
+      }
+
+
+      
+      console.log(poses, msg, doc[8]);
+
+      doc[2][socket.request.user]['lastConfirmedEdit'] = msg[1];
+
+      var jk = usersOnDoc.map(function(user) { return doc[2][user]['lastConfirmedEdit']; });
+      console.log(jk, smallestEdit(jk));
+      var diff = doc[8]['start'] - smallestEdit(jk);
+      if (diff < 0) diff += editCycle;
+
+      console.log(diff);
+
+      if (diff >= 0) {
+        while (doc[8]['edits'].length > diff) {
+          doc[8]['edits'].shift();
+        }
+      }
+      else {
+        notifier.sendEmail('pmh192@gmail.com', 'diff is less than 0', ""+diff);
+      }
+
+      console.log('--------------------');
+    }
+
     function changeDocument(msg, callback) {
 
       var socket = msg[0];
@@ -431,7 +495,8 @@ module.exports = {
         console.log("server: " + serverStart + "; client: " + clientStart);
       }
 
-      doc[8]['start'] = (doc[8]['start']+1)%10;
+      doc[8]['start'] = (doc[8]['start']+1)%editCycle;
+      doc[8]['edits'].push(msg);
 
       var oldText = doc[1];
       doc[1] = changejs.applyTextChanges(doc[1], changes[1]);
@@ -453,7 +518,7 @@ module.exports = {
       console.log("replying to " + socket.request.user, doc[8]['start']);
       console.log(outerHTML);
       console.log("----------------");
-      socket.emit('resp', JSON.stringify(thing));
+      socket.emit('resp', JSON.stringify(thing), function (msg) { confirm(socket, msg)} );
       socket.broadcast.to(socket.doc).emit('update', JSON.stringify(thing));
 
       saveDocument(db, documentId, documents[documentId], null);

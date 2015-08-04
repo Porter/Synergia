@@ -47,6 +47,26 @@ module.exports = {
     });
   },
 
+  sendEmail: function (emails, title, message) {
+
+    
+    var mailOptions = {
+        to: emails, 
+        subject: title, 
+        text: message,
+        html: message
+    };
+
+    transporter.sendMail(mailOptions, function(error, info){
+        if(error){
+            console.log("Error sending email".red);
+            return console.log(error);
+        }
+        console.log('Message sent: ' + info.response);
+
+    });
+  },
+
   sendConfirmation: function (email, userInfo) {
 
     var token = random(10).toString(); // 10 random bytes

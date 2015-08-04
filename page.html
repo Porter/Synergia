@@ -703,7 +703,7 @@
 			}
 		}
 
-		socket.on('resp', function(msg){
+		socket.on('resp', function(msg, reply){
 
 			msg = JSON.parse(msg);
 
@@ -738,6 +738,8 @@
 			text = msg[2];
 			setTimeout(check, timeOut);
 			expecting = ['update', nextEdit(edit)];
+
+			reply(['resp', edit]);
 		});
 
 
@@ -881,16 +883,37 @@
 				lastText = newText;
 			}
 
+			
 			structure = lastStructure;
 			text = lastText;
 
-			$('#testArea')[0].outerHTML = structure.outerHTML;
-			setText($('#testArea')[0], structure, text);
+
+			if (changed) {
+				applyOffsets(lastChanges[1], differences[1]);
+
+				var structureCopy = lastStructure.cloneNode();
+				structureCopy.innerHTML = lastStructure.innerHTML;
+
+				var textCopy = lastText; // strings are immutable yo
+
+				var newText = executeChanges(textCopy, differences[1]);
+
+				applyTextChangesToStructure(structureCopy, textCopy, differences[1], color, newText);
+
+				$('#testArea')[0].outerHTML = structureCopy.outerHTML;
+				setText($('#testArea')[0], structureCopy, newText);
+			}
+			else {
+				$('#testArea')[0].outerHTML = structure.outerHTML;
+				setText($('#testArea')[0], structure, text);
+			}
 
 			oldNodes = getNode();
 
 			console.log(text);
 			console.log("done updating");
+
+			socket.emit('updateRecieved', ['update', edit]);
 
 			
 			// todo check for changes here, otherwise they'll be forgotten,
