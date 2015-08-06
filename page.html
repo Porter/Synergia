@@ -487,6 +487,8 @@
 		
 		function check() {
 
+			updateTimes();
+
 			var el = document.getElementById("testArea");
 			el.normalize();
 			
@@ -632,6 +634,60 @@
 			socket.emit('init', documentId);
 		});
 
+
+		function updateTimes() {
+			var lis = $('#leftBarUlActive').children();
+			for (var i = 0; i < lis.length; i++) {
+				var li = lis[i];
+
+				if (li.childNodes.length == 2) {
+					var font = li.childNodes[0];
+					var id = font.id;
+
+					var user_id = id.substring(5); //font id is user-userId_goes_here
+
+					var user = users[user_id];
+					if (user) {
+						var joined = user['joined'];
+						if (joined) {
+							var diff = (new Date().getTime()) - (new Date(joined).getTime());
+
+							var seconds = diff / 1000;
+
+							var timeUnits = [60,  60,  24,  7,   52];
+							var units =     ['m', 'h', 'd', 'w', 'y'];
+
+							var t = Math.floor(seconds);
+							var unit = "s";
+
+							for (var n = 0; n < timeUnits.length; n++) {
+								var newT = Math.floor(t / timeUnits[n]);
+
+								if (newT == 0) break;
+
+								t = newT;
+								unit = units[n];
+							}
+
+							t += unit;
+
+							var time = li.childNodes[1];
+							time.textContent = t;
+						}
+					}
+					else {
+						console.warn("user found via ids of leftBarUlActive is null");
+					}
+				}
+				else {
+
+					console.log('li childNodes length is not 2. It\'s ' + li.childNodes.length);
+					console.log(li);
+					li.parentNode.removeChild(li);
+					i--;
+				}
+			}
+		}
 
 		function nextEdit(e) {
 			return (e+1)%100;
@@ -1168,14 +1224,7 @@
 			msg = JSON.parse(msg);
 
 			if (msg['added']) {
-				var toAdd = msg['added'];
-
-				if (users[toAdd]) {
-					users[toAdd]['x']++;
-				}
-				else {
-					users[toAdd] = msg['user'];
-				}
+				users[msg['added']] = msg['user'];
 			}
 			if (msg['removed']) {
 				var toRemove = users[msg['removed']];
@@ -1388,6 +1437,10 @@
 				font.id = "user-" + user;
 				font.color = color;
 
+				var time = document.createElement('span');
+				time.id = 'time-' + user;
+				time.style.color = 'green';
+
 				var userInfo = userLookup[user];
 
 				if (!userInfo) {
@@ -1396,7 +1449,9 @@
 				}
 
 				font.innerHTML = userInfo['user'] || userInfo['displayName'];
+				
 				li.appendChild(font);
+				li.appendChild(time);
 
 				ul.appendChild(li);
 			}

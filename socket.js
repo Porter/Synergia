@@ -191,6 +191,7 @@ module.exports = {
         socket.join(msg);
 
         socket.doc = msg;
+        socket.joinedDoc = new Date();
 
         initer.emit(msg, [socket, msg]);
       });
@@ -376,7 +377,7 @@ module.exports = {
 
           var userInfo = doc[2][socket.request.user];
           if (!userInfo) {
-            uc = {color: color, lastConfirmedEdit:-1, x:1}; // color of color, only logged in from one browser/tab
+            uc = {color: color, lastConfirmedEdit:-1, x:1, joined: new Date()}; // color of color, only logged in from one browser/tab, joined now
             doc[2][socket.request.user] = uc;
           } 
           else {
@@ -396,7 +397,7 @@ module.exports = {
           d["userId"] = socket.request.user;
 
 
-          socket.broadcast.to(documentId).emit('users', JSON.stringify( {added: socket.request.user, user:{color:color, x:1}}  ));
+          socket.broadcast.to(documentId).emit('users', JSON.stringify( {added: socket.request.user, user:doc[2][socket.request.user]}  ));
           socket.emit('init', JSON.stringify(d) );
 
           
