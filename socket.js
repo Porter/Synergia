@@ -56,7 +56,8 @@ module.exports = {
           val: "",
           creator: user,
           name: name,
-          user: {}
+          user: {},
+          createdOn: new Date()
         },
         function(err, reply) {
           if (err) stats.error(err, "creating document")
@@ -391,6 +392,8 @@ module.exports = {
           d["title"] = doc[5];
           d["userLookup"] = doc[7];
           d["start"] = doc[8]['start'];
+
+          d["userId"] = socket.request.user;
 
 
           socket.broadcast.to(documentId).emit('users', JSON.stringify( {added: socket.request.user, user:{color:color, x:1}}  ));

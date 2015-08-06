@@ -481,6 +481,7 @@
 		
 		var oldNodes, structure, text, lastPush, lastChanges, preForm, from, oldCursor = [], userLookup, undefinedUsers = [], notifying = false;
 		var edit, edits = {}, expecting, changed, lastConfirmedStructure, lastConfirmedText, expectingResp = [];
+		var userId;
 
 		var cursorPositions = {}, lastSize;
 		
@@ -1039,6 +1040,8 @@
 
 			userLookup = msg['userLookup'];
 
+			userId = msg['userId'];
+
 			text = msg['text'];
 			structure = createNodeTree(msg['struct']);
 			users = msg['currentUsers'];
@@ -1205,6 +1208,11 @@
 
 			var key = Object.keys(msg)[0];
 
+			if (key == userId) {
+				// we won't show our own cursor
+				return;
+			}
+
 			var cursorColor = users[key]['color'];
 
 			var cursor = document.getElementById('cursor-' + key);
@@ -1351,6 +1359,12 @@
 			ulActive.innerHTML = ulNotActive.innerHTML = "";
 
 			for (var user in userLookup) {
+
+				if (user == userId) {
+					//its us. 
+					continue;
+				}
+
 				var ul, color;
 				
 				if (users[user]) {
