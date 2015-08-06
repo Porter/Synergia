@@ -14,7 +14,6 @@ function strip(node) {
 	}
 
 	return cloned;
-
 }
 
 if (typeof exports != "undefined") {
@@ -268,22 +267,22 @@ function form2(node, color, isStructure, cursor) {
 						continue;
 					}
 				}
-
-
 			}
 
 
-			var styleColor = font.style.color;
-			if (styleColor) {
-				var colorColor = font.color;
+			if (font.childNodes.length == 1 && font.childNodes[0].nodeName.toLowerCase() == "#text") {
+				var styleColor = font.style.color;
+				if (styleColor) {
+					var colorColor = font.color;
 
-				if (!colorColor) {
-					font.color = tinycolor(styleColor).toHexString();
+					if (!colorColor) {
+						font.color = tinycolor(styleColor).toHexString();
+					}
+					font.style.color = "";
 				}
-				font.style.color = "";
-			}
-			if (!font.color) {
-				font.color = color;
+				if (!font.color) {
+					font.color = color;
+				}
 			}
 
 			if (font.childNodes.length == 0) {
@@ -984,6 +983,9 @@ function _applyNewLineToStructure(structure, position, color, isPost) {
 		node = nodeAtStructure(position-1, structure);
 	}
 	if (node) {
+
+		console.log(strip(node[0]), node[1]);
+
 		var font = node[0].parentNode;
 
 		var div = node[0].parentNode.parentNode;
@@ -994,6 +996,8 @@ function _applyNewLineToStructure(structure, position, color, isPost) {
 
 		var leftSide = node[1];
 		var rightSide = parseInt(node[0].textContent) - leftSide;
+
+		console.log(leftSide, rightSide);
 
 		//console.log(leftSide, rightSide);
 
@@ -1007,19 +1011,21 @@ function _applyNewLineToStructure(structure, position, color, isPost) {
 
 		belowFonts.push(right);
 
-		var after = node[0].nextSibling;
+		var after = node[0].parentNode.nextSibling;
+
 		while (after) {
 			belowFonts.push(after);
 
 			var next = after.nextSibling;
 
-			node[0].parentNode.removeChild(after);
+			after.parentNode.removeChild(after);
 
 			after = next;
 		}
 
+
 		var newDiv = document.createElement('div');
-		for (var i = 0; i < belowFonts.length; i++) {
+		for (var i = 0; i < belowFonts.length - 1; i++) {
 			newDiv.appendChild(belowFonts[i]);
 		}
 
@@ -1054,6 +1060,9 @@ function _removeNewLineFromStructure(structure, position) {
 	}
 
 	var toJoin1 = removing[0].parentNode.parentNode, toJoin2 = removing[0].parentNode.parentNode.nextSibling;
+
+
+	console.log(strip(toJoin1), strip(toJoin2));
 
 	var children1 = toJoin1.childNodes;
 	var br = toJoin1.removeChild(children1[children1.length - 1]); // remove the br at the end of every div. We'll add it to the end later
@@ -1541,9 +1550,9 @@ function changes(parent1, parent2, cursor) {
 
 function textChanges(val1, val2, node2, cursor) {
 
-	console.log("checking");
-	console.log(val1);
-	console.log(val2);
+	//console.log("checking");
+	//console.log(val1);
+	//console.log(val2);
 
 	var changes = [];
 

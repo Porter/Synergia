@@ -485,16 +485,14 @@
 		var cursorPositions = {}, lastSize;
 		
 		function check() {
+
 			var el = document.getElementById("testArea");
 			el.normalize();
 			
 			var cursor = getCursor3();
 			var cursorChanged = false;
 
-
-			var stuff = [strip(el), strip(nodeTree(el)), el.outerHTML];
-			//console.log("preform", strip(el), strip(nodeTree(el)));
-			//console.log(el.outerHTML);
+			var zeroith = $('#testArea')[0].cloneNode(true);
 
 			form2(el, color, false);
 			form(el);
@@ -597,8 +595,7 @@
 					socket.emit('inp', JSON.stringify(changes_));
 				}
 
-				console.log("logged change: " + JSON.stringify(changes_[1]));
-				console.log(edit, strip(nodeTree(oldNodes, false, true)), strip(lastStructure), strip(structure));
+				//console.log("logged change: " + JSON.stringify(changes_[1]));
 				expecting = ['resp', nextEdit(edit)];
 
 				var c = structure.cloneNode();
@@ -717,7 +714,6 @@
 				setCursor3(pos);
 			}
 			else {
-				console.log("Resp was as expected");
 				lastConfirmedStructure = fromServer;
 				lastConfirmedText = msg[2];
 			}
@@ -868,8 +864,6 @@
 			changed = el.innerHTML != oldNodes.innerHTML;
 
 
-			console.log("changed: ", changed);
-
 			if (changed) {
 				differences = getNodeChanges(oldNodes, el, getCursor3());
 				console.log("change between inp and update");
@@ -908,22 +902,26 @@
 				// so now the we've got back to lastConfirmed and applied the update to it.
 				// Now we have to apply the change we pushed
 
-				console.log(JSON.parse(msg[0])[1]);
+				console.log("recieved changes", JSON.stringify( JSON.parse(msg[0])[1]  ));
 				console.log("b4", JSON.stringify(lastChanges[1]));
 				applyOffsets(JSON.parse(msg[0])[1], lastChanges[1]);
 				console.log("after", JSON.stringify(lastChanges[1]));
 
 				// the offsets are now taken care of
 
-				var newText = executeChanges(expectingResp[1], lastChanges[1]);
+				
 				
 
 				console.log('expecting resp2');
 				console.log(strip(expectingResp[0]));
 				console.log(expectingResp[1]);
+
+				var newText = executeChanges(expectingResp[1], lastChanges[1]);
+
+
 				console.log('last changes', JSON.stringify(lastChanges[1]));
 				applyTextChangesToStructure(expectingResp[0], expectingResp[1], lastChanges[1], color, newText);
-				console.log('done');
+				console.log('done', newText);
 				form2(expectingResp[0], msg[4], true);
 				form(expectingResp[0]);
 
@@ -948,10 +946,9 @@
 				if (changed) {
 					
 					applyOffsets(JSON.parse(msg[0])[1], differences[1]);
-					applyOffsets(lastChanges[1], differences[1]);
 
 					var structureCopy = structure.cloneNode(true);
-					var textCopy = lastConfirmedText; // strings are immutable yo
+					var textCopy = text; // strings are immutable yo
 
 					var newText = executeChanges(textCopy, differences[1]);
 
