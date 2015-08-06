@@ -1560,6 +1560,8 @@ function textChanges(val1, val2, node2, cursor) {
 		if (val1.charAt(pos1) != val2.charAt(pos2)) break;
 	}
 
+	var originalVal1 = val1;
+
 	val1 = val1.substring(0, pos1+1);
 	val2 = val2.substring(0, pos2+1);
 
@@ -1630,12 +1632,12 @@ function textChanges(val1, val2, node2, cursor) {
 	//console.log(JSON.stringify(changes));
 
 
-	var textContent = getText(node2), textContentLength = textContent.length;
 	if (cursor) {
+		var textContent = getText(node2), textContentLength = textContent.length;
+
 		var cursor_ = cursor.slice();
 
 
-		console.log("b4", JSON.stringify(cursor_));
 		for (var i = 0; i < cursor_.length; i++) {
 			var curs = cursor_[i].slice();
 
@@ -1651,16 +1653,29 @@ function textChanges(val1, val2, node2, cursor) {
 			cursor_[i] = curs;
 		}
 
-		console.log("after", JSON.stringify(cursor_));
-
-
-
+		var offset = 0;
 		for (var i = 0; i < changes.length-1; i++) {
 			var textChange = changes[i];
 
-			if (textChange.length == 2 && typeof textChange[1] == "string") {
+			if (textChange.length == 2) {
 
-				var incrs = [-textChange[1].length, textChange[1].length];
+				var text, len;
+
+				if (typeof textChange[1] == "string") {
+					text = textChange[1];
+					len = textChange[1].length;
+					offset += len;
+				}
+				else {
+					len = textChange[1];
+					text = originalVal1.substring(textChange[0], textChange[0] + len);
+					console.log("deleting " + text);
+					offset -= len;
+				}
+
+
+
+				var incrs = [-len, len];
 
 				var range = [];
 				for (var n = 0; n < incrs.length; n++) {
@@ -1673,9 +1688,9 @@ function textChanges(val1, val2, node2, cursor) {
 							break;
 						}
 
-						var str = textContent.substring(pos, pos + textChange[1].length);
+						var str = textContent.substring(pos, pos + len);
 
-						if (str != textChange[1] ) {
+						if (str != text) {
 							range.push(pos - incr);
 							break;
 						}
@@ -1689,11 +1704,16 @@ function textChanges(val1, val2, node2, cursor) {
 						if (range[2] == changes.length - 2) {
 							changes[changes.length - 1] = c == textContentLength - 1 ? 1 : 0;
 						}
+
+						if (typeof textChange[1] != "string") c++;
 						console.log("changeing from ", JSON.stringify(textChange[0]), " to ", JSON.stringify(c));
 						textChange[0] = c;
 
 					}
 				}
+			}
+			else {
+				offset += textChange[1].length - textChange[2];
 			}
 		}
 	}
