@@ -1,5 +1,5 @@
 
-var editCycle = 10;
+var editCycle = 100;
 
 function getBody(documentEl) {
   return documentEl.getElementsByTagName("body")[0];
@@ -128,7 +128,7 @@ module.exports = {
       
 
       socket.on('inp', function(msg) {
-        console.log("got msg" + msg + " from user " + socket.request.user);
+        //console.log("got msg" + msg + " from user " + socket.request.user);
         if (socket.doc) {
           var doc = socket.doc;
           documentChanger.emit(doc, [socket, {msg:msg, documentId:doc}]);
@@ -139,7 +139,7 @@ module.exports = {
         msg = JSON.parse(msg);
         if (socket.doc) {
           var doc = socket.doc;
-          console.log("got msg" + msg[0] + " from user " + socket.request.user);
+          //console.log("got msg" + msg[0] + " from user " + socket.request.user);
           documentChanger.emit(doc, [socket, {msg:msg[0], documentId:doc, cursor:msg[1]}]);
         }
       });
@@ -430,23 +430,18 @@ module.exports = {
       }
 
 
-      
-      console.log(poses, msg, doc[8]);
-
       doc[2][socket.request.user]['lastConfirmedEdit'] = msg[1];
 
       var jk = usersOnDoc.map(function(user) { return doc[2][user]['lastConfirmedEdit']; });
       var smallest = smallestEdit(jk);
-      console.log(jk, smallest);
 
 
       var diff = doc[8]['start'] - smallest;
-      if (smallest == -1) diff = 0; // if smallest is -1, that means there is some user that hasn't confirmed any edits yet
+      if (smallest == -1) diff = doc[8]['edits'].length; // if smallest is -1, that means there is some user that hasn't confirmed any edits yet
 
 
       if (diff < 0) diff += editCycle;
 
-      console.log(diff);
 
       if (diff >= 0) {
         while (doc[8]['edits'].length > diff) {
@@ -457,7 +452,6 @@ module.exports = {
         notifier.sendEmail('pmh192@gmail.com', 'diff is less than 0', ""+diff);
       }
 
-      console.log('--------------------');
     }
 
     function changeDocument(msg, callback) {
@@ -540,11 +534,8 @@ module.exports = {
       var outerHTML = doc[0].parentWindow.window.document.getElementById('testArea').outerHTML;
       var thing = [msg, outerHTML, doc[1], doc[8]['start'], col];
 
-      console.log("----------------");
-      //console.log("updating " + JSON.stringify(io.nsps['/'].adapter.rooms[socket.doc]));
-      console.log("replying to " + socket.request.user, doc[8]['start']);
-      console.log(outerHTML);
-      console.log("----------------");
+      console.log(doc[1] + " is from message " + (doc[8]['start']-1));
+
       socket.emit('resp', JSON.stringify(thing), function (msg) { confirm(socket, msg)} );
       socket.broadcast.to(socket.doc).emit('update', JSON.stringify(thing));
 

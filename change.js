@@ -1298,7 +1298,7 @@ function applyTextChangesToStructure(structure, originalText, textChanges_, colo
 	}
 
 	if (originalText != finalText) {
-		if (alert) alert('text problem 2');
+		if (typeof alert != "undefined") alert('text problem 2');
 		console.log('text problem 2');
 		console.log(originalText);
 		console.log(finalText);
@@ -1540,6 +1540,10 @@ function changes(parent1, parent2, cursor) {
 
 
 function textChanges(val1, val2, node2, cursor) {
+
+	console.log("checking");
+	console.log(val1);
+	console.log(val2);
 
 	var changes = [];
 

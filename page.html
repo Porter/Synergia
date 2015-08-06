@@ -457,6 +457,10 @@
 				sel.removeAllRanges();
 				sel.addRange(range);
 			}
+			else {
+				console.log("start of end is null");
+				console.log(JSON.stringify(start), JSON.stringify(end));
+			}
 
 		}
 
@@ -475,8 +479,8 @@
 		var timeOut = 100; // ms
 		
 		
-		var oldNodes, structure, text, lastPush, lastStructure, lastText, lastChanges, preForm, from, oldCursor = [], userLookup, undefinedUsers = [], notifying = false;
-		var edit, edits = {}, expecting;
+		var oldNodes, structure, text, lastPush, lastChanges, preForm, from, oldCursor = [], userLookup, undefinedUsers = [], notifying = false;
+		var edit, edits = {}, expecting, changed, lastConfirmedStructure, lastConfirmedText, expectingResp = [];
 
 		var cursorPositions = {}, lastSize;
 		
@@ -542,9 +546,10 @@
 				text = getText(el);
 
 				if (gotText != text) {
-					alert('text problem');
+					console.log('text problem');
 					console.log(text);
 					console.log(gotText);
+					alert('text problem');
 				}
 				preForm = getNode();
 				
@@ -591,7 +596,17 @@
 				else {
 					socket.emit('inp', JSON.stringify(changes_));
 				}
+
+				console.log("logged change: " + JSON.stringify(changes_[1]));
+				console.log(edit, strip(nodeTree(oldNodes, false, true)), strip(lastStructure), strip(structure));
 				expecting = ['resp', nextEdit(edit)];
+
+				var c = structure.cloneNode();
+				c.innerHTML = structure.innerHTML;
+
+				expectingResp = [c, text];
+
+
 				$('#status')[0].style.backgroundColor = "red";
 			}
 			else {
@@ -621,7 +636,7 @@
 
 
 		function nextEdit(e) {
-			return (e+1)%10;
+			return (e+1)%100;
 		}
 
 		function applyPreviousEdits() {
@@ -652,7 +667,7 @@
 			}
 
 			var fromServer = createNodeTree(msg[1]);
-			if ( !strippedNodeTreesAreEqual(fromServer, structure)  || msg[2] != text) {
+			if ( !strippedNodeTreesAreEqual(fromServer, expectingResp[0])  || msg[2] != expectingResp[1]) {
 
 				var pos = getCursor3();
 
@@ -662,23 +677,23 @@
 
 				socket.emit('clientError', JSON.stringify({from:from.innerHTML, to:preForm.innerHTML, afterForm:lastPush.innerHTML, got:got, change:lastChanges}));
 
-				if (msg[2] == text) {
+				if (!strippedNodeTreesAreEqual(fromServer, expectingResp[0])) {
 					console.log("structure differed");
 					console.log("from server:");
 					console.log(fromServer);
 					console.log("from us");
-					console.log(structure);
+					console.log(strip(expectingResp[0]));
 
 					console.log("diffs");
 					var el = document.getElementById('testArea');
 					console.log(structureDifferences(el, fromServer));
 				}
-				else {
+				if (msg[2] != expectingResp[1]) {
 					console.log("text differed");
 					console.log("from server:");
 					console.log(msg[2]);
 					console.log("from us");
-					console.log(text);
+					console.log(expectingResp[1]);
 
 					console.log("diffs from us to server");
 					console.log(textChanges(text, msg[2], $('#testArea')[0], pos));
@@ -701,6 +716,11 @@
 
 				setCursor3(pos);
 			}
+			else {
+				console.log("Resp was as expected");
+				lastConfirmedStructure = fromServer;
+				lastConfirmedText = msg[2];
+			}
 		}
 
 		socket.on('resp', function(msg, reply){
@@ -708,7 +728,7 @@
 			msg = JSON.parse(msg);
 
 			if (expecting[0] == "resp" && expecting[1] == msg[3]) {
-				console.log("got expected resp");
+				console.log("got expected resp " + expecting[1]);
 			}
 			else {
 				console.log("didn't get expecting");
@@ -729,9 +749,9 @@
 
 			edit = msg[3];
 
-			applyResp(msg);
+			applyPreviousEdits(); // if everything is recieved in order, this doesn't do anything
 
-			applyPreviousEdits();
+			applyResp(msg);
 
 			  
 			text = msg[2];
@@ -772,41 +792,24 @@
 		}
 
 
-		function applyUpdate(msg) {
+		function applyUpdate(msg, struct, text_) {
 			var pos = getCursor3();
 
 			var changes_ = JSON.parse(msg[0]);
 			var textChanges_ = changes_[1];
 
-			/*var structurualChange = changes_[0];
-			if (structurualChange) {
-				structurualChange = [changes_[0][0], createNodeTree(changes_[0][1])];
-
-				setStructureDifferences(structure, structurualChange);
-				colorizeStructure(changes_[2], structure, msg[4]);
-				form2(structure, color, true);
-				form(structure);
-			}
-
-			text = executeChanges(text, textChanges_);
-
-			if (!strippedNodeTreesAreEqual(structure, createNodeTree(msg[1])) || text != msg[2]) {
-				alert('update problem');
-			}*/
 
 
-			//structure = nodeTree($('#testArea')[0], color, true, false);
-			//text = msg[2];
+			var oldText = text_;
+			text_ = executeChanges(text_, textChanges_);
 
-			var oldText = lastText;
-			lastText = executeChanges(lastText, textChanges_);
-			applyTextChangesToStructure(lastStructure, oldText, textChanges_, msg[4], lastText);
+			applyTextChangesToStructure(struct, oldText, textChanges_, msg[4], text_);
 
-			form2(lastStructure, msg[4], true);
-			form(lastStructure);
+			form2(struct, msg[4], true);
+			form(struct);
 
-			$('#testArea')[0].outerHTML = lastStructure.outerHTML;
-			setText($('#testArea')[0], lastStructure, lastText);
+			$('#testArea')[0].outerHTML = struct.outerHTML;
+			setText($('#testArea')[0], struct, text_);
 
 			
 			
@@ -815,6 +818,26 @@
 			expecting = [expecting[0], nextEdit(edit)];
 
 			setCursor3(pos);
+
+			return [struct, text_];
+		}
+
+		function confirmIntegrity(fus, fut, fss, fst) {
+			if (fut != fst) {
+				console.log("updated text deosn't match");
+				console.log("from server", fst);
+				console.log("from us    ", fut);
+
+				alert("updated text doesn't match");
+			}
+
+			if (!strippedNodeTreesAreEqual(fus, fss)) {
+				console.log("updated structure deosn't match");
+				console.log("from server", strip(fss));
+				console.log("from us    ", strip(fus));
+
+				alert("updated structure doesn't match");
+			}
 		}
 
 		socket.on('update', function(msg) {			
@@ -824,9 +847,6 @@
 
 			if (gotExpecting) {
 				console.log("got expected update");
-
-				lastText = text;
-				lastStructure = structure;
 			}
 			else {
 				console.log("didn't get expecting");
@@ -843,91 +863,164 @@
 				return;
 			}
 
-			var el = document.getElementById("testArea");
-			var changed = el.innerHTML != oldNodes.innerHTML, differences;
+			var el = document.getElementById("testArea"), differences;
+
+			changed = el.innerHTML != oldNodes.innerHTML;
+
+
 			console.log("changed: ", changed);
 
 			if (changed) {
-				differences = getNodeChanges(structure, el, getCursor3());
+				differences = getNodeChanges(oldNodes, el, getCursor3());
 				console.log("change between inp and update");
-				console.log(differences);
+				console.log(JSON.stringify(differences));
 			}
 
 			edit = msg[3];
 
-			applyUpdate(msg);
-
-			applyPreviousEdits();
-
-			if (lastText != msg[2]) {
-				console.log("updated text deosn't match");
-				console.log("from server", msg[2]);
-				console.log("from us    ", lastText);
-
-				alert("updated text doesn't match");
-
-				$('#testArea')[0].outerHTML = structure.outerHTML;
-				setText($('#testArea')[0], structure, text);
-			}
-
-			if (!strippedNodeTreesAreEqual(lastStructure, createNodeTree(msg[1]))) {
-				console.log("updated structure deosn't match");
-				console.log("from server", strip(createNodeTree(msg[1])));
-				console.log("from us    ", strip(lastStructure));
-
-				alert("updated structure doesn't match");
-
-				$('#testArea')[0].outerHTML = structure.outerHTML;
-				setText($('#testArea')[0], structure, text);
-			}
 
 
-			if (!gotExpecting) {
+			if (expecting[0] == 'resp') { // we gotta go back in time and apply this edit first
+				var c = getCursor3();
+
+				console.log('last confirmed');
+				console.log(strip(lastConfirmedStructure));
+				console.log(lastConfirmedText);
+
+				expectingResp = applyUpdate(msg, lastConfirmedStructure, lastConfirmedText);
+
+				lastConfirmedText = expectingResp[1];
+
+				lastConfirmedStructure = expectingResp[0].cloneNode();
+				lastConfirmedStructure.innerHTML = expectingResp[0].innerHTML;
+
+				applyPreviousEdits();
+
+				console.log('last confirmed 2');
+				console.log(strip(lastConfirmedStructure));
+				console.log(lastConfirmedText);
+
+
+				console.log('expecting resp');
+				console.log(strip(expectingResp[0]));
+				console.log(expectingResp[1]);
+
+				// so now the we've got back to lastConfirmed and applied the update to it.
+				// Now we have to apply the change we pushed
 
 				console.log(JSON.parse(msg[0])[1]);
 				console.log("b4", JSON.stringify(lastChanges[1]));
 				applyOffsets(JSON.parse(msg[0])[1], lastChanges[1]);
 				console.log("after", JSON.stringify(lastChanges[1]));
 
-				var newText = executeChanges(lastText, lastChanges[1]);
-				applyTextChangesToStructure(lastStructure, lastText, lastChanges[1], color, newText);
-				lastText = newText;
+				// the offsets are now taken care of
 
-				var c = getCursor3();
+				var newText = executeChanges(expectingResp[1], lastChanges[1]);
+				
 
-				form2(lastStructure, msg[4], true);
-				form(lastStructure);
+				console.log('expecting resp2');
+				console.log(strip(expectingResp[0]));
+				console.log(expectingResp[1]);
+				console.log('last changes', JSON.stringify(lastChanges[1]));
+				applyTextChangesToStructure(expectingResp[0], expectingResp[1], lastChanges[1], color, newText);
+				console.log('done');
+				form2(expectingResp[0], msg[4], true);
+				form(expectingResp[0]);
 
-				$('#testArea')[0].outerHTML = lastStructure.outerHTML;
-				setText($('#testArea')[0], lastStructure, lastText);
+				expectingResp[1] = newText;
+
+				confirmIntegrity(lastConfirmedStructure, lastConfirmedText, createNodeTree(msg[1]), msg[2]);
+				
+
+				$('#testArea')[0].outerHTML = expectingResp[0].outerHTML;
+				setText($('#testArea')[0], expectingResp[0], expectingResp[1]);
+
+				oldNodes = getNode();
+
+				structure = expectingResp[0].cloneNode();
+				structure.innerHTML = expectingResp[0].innerHTML;
+
+				text = expectingResp[1];
+
+				applyTextOffsetToCursor(c, JSON.parse(msg[0])[1]); // apply the updates text chagnes on the position of the caret
+
+
+				if (changed) {
+					
+					applyOffsets(JSON.parse(msg[0])[1], differences[1]);
+					applyOffsets(lastChanges[1], differences[1]);
+
+					var structureCopy = structure.cloneNode(true);
+					var textCopy = lastConfirmedText; // strings are immutable yo
+
+					var newText = executeChanges(textCopy, differences[1]);
+
+					applyTextChangesToStructure(structureCopy, textCopy, differences[1], color, newText);
+
+					$('#testArea')[0].outerHTML = structureCopy.outerHTML;
+					setText($('#testArea')[0], structureCopy, newText);
+
+					console.log('changed, going from ');
+					console.log(lastConfirmedText);
+					console.log('to');
+					console.log(newText);
+				}
+
 
 				setCursor3(c);
-
 			}
 
-			
-			structure = lastStructure;
-			text = lastText;
+			else {
+				console.log('in else');
+				var c = getCursor3();
+
+				console.log("from", strip(lastConfirmedStructure));
+				console.log(lastConfirmedText);
+				var things = applyUpdate(msg, lastConfirmedStructure, lastConfirmedText);
+				lastConfirmedStructure = things[0];
+				lastConfirmedText = things[1];
+				
+				console.log("to ", strip(lastConfirmedStructure));
+				console.log(lastConfirmedText);
 
 
-			if (changed) {
-				if (lastChanges) applyOffsets(lastChanges[1], differences[1]);
 
-				var structureCopy = lastStructure.cloneNode();
-				structureCopy.innerHTML = lastStructure.innerHTML;
+				structure = lastConfirmedStructure.cloneNode(true);
+				text = lastConfirmedText;
 
-				var textCopy = lastText; // strings are immutable yo
+				$('#testArea')[0].outerHTML = structure.outerHTML;
+				setText($('#testArea')[0], structure, text);
 
-				var newText = executeChanges(textCopy, differences[1]);
+				oldNodes = getNode();
 
-				applyTextChangesToStructure(structureCopy, textCopy, differences[1], color, newText);
+				confirmIntegrity(structure, text, createNodeTree(msg[1]), msg[2]);
 
-				$('#testArea')[0].outerHTML = structureCopy.outerHTML;
-				setText($('#testArea')[0], structureCopy, newText);
+				applyTextOffsetToCursor(c, JSON.parse(msg[0])[1]); // apply the updates text chagnes on the position of the caret
+
+				if (changed) {
+					
+					console.log("change between check and update");
+
+					applyOffsets(JSON.parse(msg[0])[1], differences[1]);
+
+					var structureCopy = structure.cloneNode(true);
+					var textCopy = lastConfirmedText; // strings are immutable yo
+
+					var newText = executeChanges(textCopy, differences[1]);
+
+					applyTextChangesToStructure(structureCopy, textCopy, differences[1], color, newText);
+
+					$('#testArea')[0].outerHTML = structureCopy.outerHTML;
+					setText($('#testArea')[0], structureCopy, newText);
+
+					console.log('changed, going from ');
+					console.log(lastConfirmedText);
+					console.log('to');
+					console.log(newText);
+				}
+
+				setCursor3(c);
 			}
-			
-
-			oldNodes = getNode();
 
 			console.log(text);
 			console.log($('#testArea')[0].textContent);
@@ -952,6 +1045,9 @@
 			text = msg['text'];
 			structure = createNodeTree(msg['struct']);
 			users = msg['currentUsers'];
+
+			lastConfirmedStructure = structure.cloneNode(true);
+			lastConfirmedText = text;
 
 			var len = structureLength(structure) + max(0, structure.childNodes.length - 1);
 			if (len != text.length) {
@@ -981,6 +1077,7 @@
 			setTimeout(check, timeOut);
 			
 			oldNodes = getNode();
+			console.log("oldNodes init", strip(oldNodes));
 			lastPush = getNode();
 			lastStructure = nodeTree(oldNodes, color, true, false);
 
