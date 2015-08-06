@@ -137,7 +137,14 @@ module.exports = {
       passport.authenticate('google', { failureRedirect: '/login' }),
       function(req, res) {
         // Successful authentication, redirect home.
-        res.redirect(decodeURIComponent(req.param('state')));
+
+        var state = req.param('state');
+        if (state) {
+          res.redirect(decodeURIComponent);
+        }
+        else { 
+          res.redirect("/");
+        }
       });
 
 
