@@ -285,6 +285,19 @@
 	</body>
 
 	<script type="text/javascript">
+	/*    Begin Plugin    */
+;;(function($){$.winFocus||($.extend({winFocus:function(){var a=!0,b=[];$(document).data("winFocus")||$(document).data("winFocus",$.winFocus.init());for(x in arguments)"object"==typeof arguments[x]?(arguments[x].blur&&$.winFocus.methods.blur.push(arguments[x].blur),arguments[x].focus&&$.winFocus.methods.focus.push(arguments[x].focus),arguments[x].blurFocus&&$.winFocus.methods.blurFocus.push(arguments[x].blurFocus),arguments[x].initRun&&(a=arguments[x].initRun)):"function"==typeof arguments[x]?b.push(arguments[x]):
+"boolean"==typeof arguments[x]&&(a=arguments[x]);b&&(1==b.length?$.winFocus.methods.blurFocus.push(b[0]):($.winFocus.methods.blur.push(b[0]),$.winFocus.methods.focus.push(b[1])));if(a)$.winFocus.methods.onChange()}}),$.winFocus.init=function(){$.winFocus.props.hidden in document?document.addEventListener("visibilitychange",$.winFocus.methods.onChange):($.winFocus.props.hidden="mozHidden")in document?document.addEventListener("mozvisibilitychange",$.winFocus.methods.onChange):($.winFocus.props.hidden=
+"webkitHidden")in document?document.addEventListener("webkitvisibilitychange",$.winFocus.methods.onChange):($.winFocus.props.hidden="msHidden")in document?document.addEventListener("msvisibilitychange",$.winFocus.methods.onChange):($.winFocus.props.hidden="onfocusin")in document?document.onfocusin=document.onfocusout=$.winFocus.methods.onChange:window.onpageshow=window.onpagehide=window.onfocus=window.onblur=$.winFocus.methods.onChange;return $.winFocus},$.winFocus.methods={blurFocus:[],blur:[],focus:[],
+exeCB:function(a){$.winFocus.methods.blurFocus&&$.each($.winFocus.methods.blurFocus,function(b,c){"function"==typeof this&&this.apply($.winFocus,[a,!a.hidden])});a.hidden&&$.winFocus.methods.blur&&$.each($.winFocus.methods.blur,function(b,c){"function"==typeof this&&this.apply($.winFocus,[a])});!a.hidden&&$.winFocus.methods.focus&&$.each($.winFocus.methods.focus,function(b,c){"function"==typeof this&&this.apply($.winFocus,[a])})},onChange:function(a){var b={focus:!1,focusin:!1,pageshow:!1,blur:!0,
+focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:document[$.winFocus.props.hidden],$(window).data("visible",!a.hidden),$.winFocus.methods.exeCB(a);else try{$.winFocus.methods.onChange.call(document,new Event("visibilitychange"))}catch(c){}}},$.winFocus.props={hidden:"hidden"});})(jQuery);
+/*    End Plugin      */
+
+
+// thanks http://stackoverflow.com/a/16043687/1612991
+</script>
+
+	<script type="text/javascript">
 
 		function e() { $('#status').css('display', ''); }
 
@@ -314,6 +327,22 @@
 		   // Internet Explorer) will be suppressed.
 		   return suppressErrorAlert;
 		};
+
+		hasFocus = false;
+		var onSocketInit;
+
+		$.winFocus(function(event, isVisible) {
+		    if (socket.connected) {
+		    	socket.emit('visibilitychange', isVisible);
+		    }
+		    else {
+		    	onSocketInit = function() {
+		    		socket.emit('visibilitychange', isVisible);
+		    	};
+		    }
+
+		});
+
 
 
 		function getQueryParams() {
@@ -630,6 +659,8 @@
 		}
 		
 		socket.on('connect', function(s) {
+			
+
 			documentId = getQueryParams()['doc'];
 			socket.emit('init', documentId);
 		});
@@ -638,53 +669,64 @@
 		function updateTimes() {
 			var lis = $('#leftBarUlActive').children();
 			for (var i = 0; i < lis.length; i++) {
-				var li = lis[i];
+				
+				var li = lis[i].childNodes[0], container;
 
-				if (li.childNodes.length == 2) {
-					var font = li.childNodes[0];
-					var id = font.id;
-
-					var user_id = id.substring(5); //font id is user-userId_goes_here
-
-					var user = users[user_id];
-					if (user) {
-						var joined = user['joined'];
-						if (joined) {
-							var diff = (new Date().getTime()) - (new Date(joined).getTime());
-
-							var seconds = diff / 1000;
-
-							var timeUnits = [60,  60,  24,  7,   52];
-							var units =     ['m', 'h', 'd', 'w', 'y'];
-
-							var t = Math.floor(seconds);
-							var unit = "s";
-
-							for (var n = 0; n < timeUnits.length; n++) {
-								var newT = Math.floor(t / timeUnits[n]);
-
-								if (newT == 0) break;
-
-								t = newT;
-								unit = units[n];
-							}
-
-							t += unit;
-
-							var time = li.childNodes[1];
-							time.textContent = t;
-						}
-					}
-					else {
-						console.warn("user found via ids of leftBarUlActive is null");
-					}
+				if (li.childNodes.length == 1) {
+					container = li.childNodes[0];
+				}
+				else if (li.childNodes.length == 2) {
+					container = li.childNodes[1];
 				}
 				else {
 
 					console.log('li childNodes length is not 2. It\'s ' + li.childNodes.length);
 					console.log(li);
-					li.parentNode.removeChild(li);
-					i--;
+					//li.parentNode.removeChild(li);
+					//i--;
+				}
+
+
+				var boost = container.childNodes.length - 2;
+
+				var font = container.childNodes[0 + boost];
+				var id = font.id;
+
+				var time = container.childNodes[1 + boost];
+
+				var user_id = id.substring(5); //font id is user-userId_goes_here
+
+				var user = users[user_id];
+				if (user) {
+					var joined = user['joined'];
+					if (joined) {
+						var diff = (new Date().getTime()) - (new Date(joined).getTime());
+
+						var seconds = diff / 1000;
+
+						var timeUnits = [60,  60,  24,  7,   52];
+						var units =     ['m', 'h', 'd', 'w', 'y'];
+
+						var t = Math.floor(seconds);
+						var unit = "s";
+
+						for (var n = 0; n < timeUnits.length; n++) {
+							var newT = Math.floor(t / timeUnits[n]);
+
+							if (newT == 0) break;
+
+							t = newT;
+							unit = units[n];
+						}
+
+						t += unit;
+
+						
+						time.textContent = t;
+					}
+				}
+				else {
+					console.warn("user found via ids of leftBarUlActive is null");
 				}
 			}
 		}
@@ -1089,6 +1131,11 @@
 		});
 		
 		socket.on('init', function(msg) {
+
+			if (onSocketInit) {
+				onSocketInit();
+			}
+
 			console.log(msg);
 			msg = JSON.parse(msg);
 			console.log("initing with " + msg['text']);
@@ -1221,27 +1268,19 @@
 		}
 
 		socket.on('users', function(msg) {
-			msg = JSON.parse(msg);
 
-			if (msg['added']) {
-				users[msg['added']] = msg['user'];
+			var user = msg[0];
+			var userInfo = msg[1];
+
+			if (userInfo) {
+				users[user] = userInfo;
 			}
-			if (msg['removed']) {
-				var toRemove = users[msg['removed']];
-
-				if (toRemove['x'] <= 1) {
-
-					delete users[msg['removed']];
-
-					var cursor = $('#cursor-' + msg['removed']);
-					if (cursor.length > 0) {
-						$('#cursors')[0].removeChild(cursor[0]);
-					}
-				}
-				else {
-					toRemove['x']--;
+			else {
+				if (users[user]) {
+					delete users[user];
 				}
 			}
+
 
 			showUsers(users);
 		});
@@ -1414,11 +1453,15 @@
 					continue;
 				}
 
-				var ul, color;
+				var ul, color, div = document.createElement('div'), container = document.createElement('div'), time;
 				
 				if (users[user]) {
 					var ul = ulActive;
 					var color = users[user]['color'];
+
+					time = document.createElement('span');
+					time.id = 'time-' + user;
+					time.style.color = users[user]['visibility'] ? 'green' : 'red';
 				}
 				else {
 					var ul = ulNotActive;
@@ -1430,16 +1473,14 @@
 				var checkbox = document.createElement('input');
 				checkbox.type = 'checkbox';
 				if (notifying) {
-					li.appendChild(checkbox);
+					container.appendChild(checkbox);
 				}
 
 				var font = document.createElement('font');
 				font.id = "user-" + user;
 				font.color = color;
-
-				var time = document.createElement('span');
-				time.id = 'time-' + user;
-				time.style.color = 'green';
+				font.style.paddingRight = "20px";
+				font.style.paddingLeft = "20px";
 
 				var userInfo = userLookup[user];
 
@@ -1450,11 +1491,17 @@
 
 				font.innerHTML = userInfo['user'] || userInfo['displayName'];
 				
-				li.appendChild(font);
-				li.appendChild(time);
+				container.id = "container-" + user;
+				container.appendChild(font);
+				if (time) container.appendChild(time);
+
+				div.appendChild(container);
+
+				li.appendChild(div);
 
 				ul.appendChild(li);
 			}
+			updateTimes();
 		}
 
 		function removeNodesWithClass(node, className) {

@@ -106,17 +106,15 @@ module.exports = {
 
             var user = users[socket.request.user];
             if (user['x'] <= 1) {
-              console.log("deleting " + socket.request.user, users[socket.request.user]);
               delete users[socket.request.user];
             }
             else {
-              console.log("decrementing ", user);
               user['x']--;
             }
             
           }
 
-          socket.broadcast.to(socket.doc).emit("users", JSON.stringify( { removed: socket.request.user } ));
+          socket.broadcast.to(socket.doc).emit("users", [socket.request.user, users[socket.request.user]] );
         }
 
         socket.doc = undefined;
@@ -151,6 +149,21 @@ module.exports = {
           var doc = socket.doc;
           documentChanger.emit(doc, [socket, {cursor:msg, documentId:doc}]);
         }
+      });
+
+      socket.on('visibilitychange', function(msg) {
+
+        var doc = documents[socket.doc];
+
+        if (!doc || !doc[2][socket.request.user]) {
+          console.log("visibilitychanged, but either the doc or the user isn't initialized".red);
+        }
+
+        var user = doc[2][socket.request.user];
+
+        user['visibility'] = msg;
+
+        socket.broadcast.to(socket.doc).emit('users', [socket.request.user, user]);
       });
 
 
@@ -377,7 +390,9 @@ module.exports = {
 
           var userInfo = doc[2][socket.request.user];
           if (!userInfo) {
-            uc = {color: color, lastConfirmedEdit:-1, x:1, joined: new Date()}; // color of color, only logged in from one browser/tab, joined now
+            uc = {color: color, lastConfirmedEdit:-1, x:1, joined: new Date(), visibility: true};
+            // color of color, only logged in from one browser/tab, joined now, is active
+            
             doc[2][socket.request.user] = uc;
           } 
           else {
@@ -397,7 +412,7 @@ module.exports = {
           d["userId"] = socket.request.user;
 
 
-          socket.broadcast.to(documentId).emit('users', JSON.stringify( {added: socket.request.user, user:doc[2][socket.request.user]}  ));
+          socket.broadcast.to(documentId).emit('users', [socket.request.user, doc[2][socket.request.user]] );
           socket.emit('init', JSON.stringify(d) );
 
           
