@@ -11,36 +11,27 @@
 
 		<style>
 
-
+	
 
 			body{
-				background-color: rgb(214, 214, 214);
-				color:black;
-				font-size: 20px;
-				line-height: 40px;
-				letter-spacing: .5px;
-				font-family:"Papyrus";
+				background-color: rgb(15,4,87);
+		
+				
 			}
 
 			
-		 .Shape_1_copy {
-  background-color: rgb(24, 71, 214);
-  position: absolute;
-  left: 113175px;
-  top: 45600px;
-  width: 67425px;
-  height: 41025px;
-  z-index: 3;
-}
+	
 
 			#Heading {
 				width:40%;
 				background-color: rgb(121, 101, 141);
 				color:white;
 				font-family: "Optima";
-				font-size: 50px;
+				font-size: 40px;
 				padding-top: 20px;
 				padding-bottom: 20px;
+				padding-right:5px;
+				padding-left:5px;
 				margin-top: 100px;
 				border-radius: 1px 30px 1px 30px;
 
@@ -56,7 +47,16 @@
 			}
 
 			.list{
-				
+				background-color: rgb(220,220,220);
+				margin-top: 10px;
+				margin-right:50px;
+				margin-left:50px;
+				border-radius: 10px;
+				color:black;
+				font-size: 20px;
+				line-height: 40px;
+				letter-spacing: .5px;
+				font-family:"Optima";
 			}
 
 			#docName{
@@ -71,12 +71,12 @@
 		
 		<center>
 
-			<h2 class=".Shape_1_copy">LOCAL SYNERGIE</h2>
+			<h2 id="Heading">LOCAL SYNERGIE</h2>
 
 			<br/><br/>
 
 
-			<ul style="list-style-type: none;">
+			<ul class="list">
 
 			{% for doc in documents %}
 			  <li><a href="/docs/view?doc={{ doc._id.toString() }}&title={{ doc.name }}"> {{ doc.name }} </a><span id='{{doc._id.toString()}}'></span></li>
