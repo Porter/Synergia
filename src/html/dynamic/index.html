@@ -1,0 +1,158 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Connectivity</title>
+		<script src="/socket.io-1.2.0.js"></script>
+		<script src="/jquery-1.11.1.js"></script>
+		<script type="text/javascript" src="/public/bootstrap/js/bootstrap.min.js"></script>
+		
+		<link href="/public/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+
+		<style>
+
+	
+
+			body{
+				background-color: rgb(15,4,87);
+		
+				
+			}
+
+			
+	
+
+			#Heading {
+				width:40%;
+				background-color: rgb(121, 101, 141);
+				color:white;
+				font-family: "Optima";
+				font-size: 40px;
+				padding-top: 20px;
+				padding-bottom: 20px;
+				padding-right:5px;
+				padding-left:5px;
+				margin-top: 100px;
+				border-radius: 1px 30px 1px 30px;
+
+			}
+
+			#createNew{
+				font-size: 18px;
+				font-family:"Courier";
+				padding-top:10px;
+				padding-bottom:10px;
+				background-color: rgb(15,4,87);
+				color:white;
+			}
+
+			.list{
+				background-color: rgb(220,220,220);
+				margin-top: 10px;
+				margin-right:50px;
+				margin-left:50px;
+				border-radius: 10px;
+				color:black;
+				font-size: 20px;
+				line-height: 40px;
+				letter-spacing: .5px;
+				font-family:"Optima";
+			}
+
+			#docName{
+				color:white;
+			}
+
+  
+		</style>
+	</head>
+
+	<body>
+		
+		<center>
+
+			<h2 id="Heading">LOCAL SYNERGIE</h2>
+
+			<br/><br/>
+
+
+			<ul class="list">
+
+			{% for doc in documents %}
+			  <li><a href="/docs/view?doc={{ doc._id.toString() }}&title={{ doc.name }}"> {{ doc.name }} </a><span id='{{doc._id.toString()}}'></span></li>
+			{% endfor %}
+
+			</ul>
+
+			<form onsubmit="javascript:thing(); return false;">
+				<input id="name" type="text">
+				<input type="submit" value="CREATE NEW">
+			</form>
+
+		</center>
+		
+		
+		
+		
+	</body>
+
+	<script type="text/javascript">
+
+
+		function check() {
+
+			
+
+			$.getJSON('/aval', function(resp){ 
+				var lis = $('li');
+				for (var i = 0; i < lis.length; i++) {
+					lis[i].childNodes[1].innerHTML = "";
+				}
+
+				for (var key in resp) {
+					var amount = resp[key];
+					$('#' + key)[0].innerHTML = " | " + amount + " " + (amount == 1 ? "user" : "users");
+				}
+			});
+			setTimeout(check, 5000);
+		}
+
+		check();
+
+
+		status = 0;
+
+		function onTimeout() {
+			alert("timed out");
+		}
+
+
+		function thing () {
+			var doc = $('#name').val();
+
+
+			var socket = io();
+
+			var to = setTimeout(onTimeout, 5 * 1000);
+
+			socket.on('connect', function () {
+				status = 1;
+			    socket.emit('createDocument', doc, function (data) {
+			    	clearTimeout(to);
+
+			    	if (data == -1) {
+				    	alert("ajsldfj");
+				    }
+				    else {
+				    	window.location.href = '/docs/view?doc=' + data;
+				    }
+			    });
+			});
+
+
+		}
+
+	</script>
+	
+	
+</html>
