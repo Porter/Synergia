@@ -289,7 +289,6 @@ async.waterfall([
     runServer
   ],
     function (err, results) {
-      console.log(err);
       console.log("results: " + results);
     }
 
