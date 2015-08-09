@@ -47,7 +47,7 @@ var RedisStore = require("connect-redis")(session);
 
 var fs = require("fs");
 
-var channels = require("./channels");
+var channels = require("./js/channels");
 var changejs = reload("./public/js/change")
 var jsdom = require("jsdom");
 jsdom.defaultDocumentFeatures = {
@@ -126,19 +126,19 @@ function runServer(db, callback) {
       }
   }
 
-  var notifier = require('./notify');
+  var notifier = require('./js/notify');
   notifier.init(email, secure_random, db, mode == 'production');
 
-  var stats = require('./stats');
+  var stats = require('./js/stats');
   stats.init(email, db);
 
-  require('./auth').foo(app, passport, LocalStrategy, db, secure_random, notifier, mode == 'production');
+  require('./js/auth').foo(app, passport, LocalStrategy, db, secure_random, notifier, mode == 'production');
   
-  var mySocket = require('./socket');
+  var mySocket = require('./js/socket');
   mySocket.foo(io, passportSocketIo, secretKey, sessionStore, channels, changejs, jsdom, winston, mongo, db, secure_random, async, stats, notifier);
 
-  require('./api').foo(app, channels, db, secure_random, async); 
-  require('./test').foo(app, pg); 
+  require('./js/api').foo(app, channels, db, secure_random, async); 
+  require('./js/test').foo(app, pg); 
 
 
   app.get('/aval', function(req, res) {
