@@ -266,10 +266,6 @@ function runServer(db, callback) {
   callback(null, "success");
 }
 
-
-
-
-
 async.waterfall([
 
     function (callback) {
@@ -281,6 +277,10 @@ async.waterfall([
         if (err){
           callback(err);
           return;
+        }
+
+        if (!db_) {
+          console.log("db is null".red);
         }
 
         callback(null, db_);

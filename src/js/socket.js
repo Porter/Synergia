@@ -61,6 +61,8 @@ module.exports = {
         },
         function(err, reply) {
           if (err) stats.error(err, "creating document")
+          console.log('created document');
+          console.log(reply);
           callback(err, reply);
       });
     }

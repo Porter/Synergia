@@ -188,7 +188,7 @@ function form2(node, color, isStructure, cursor) {
 	var children = node.childNodes;
 
 
-	var newHTML = node.innerHTML.replace(/\n/g, '');;
+	var newHTML = node.innerHTML.replace(/\n/g, '');
 
 	if (newHTML != node.innerHTML) {
 		node.innerHTML = newHTML;
@@ -238,7 +238,6 @@ function form2(node, color, isStructure, cursor) {
 				parentFont.appendChild(font);
 
 				child.insertBefore(parentFont, nextSibling);
-
 
 				n--;
 				continue;
@@ -306,6 +305,19 @@ function form2(node, color, isStructure, cursor) {
 					var fontChildChildren = fontChild.childNodes;
 
 					var attrs = AttrsToDict(fontChild.attributes);
+
+					console.log(JSON.stringify(attrs));
+
+					if (name == "i") {
+						var style = attrs['style'] || '';
+						style = style.replace(/\n/g, '');
+
+						if (style.charAt(style.length-1) != ";" && style.length > 0) style += ";"
+
+						style += 'font-style: italic;';
+
+						attrs['style'] = style;
+					}
 
 					for (var i = fontChildChildren.length - 1; i >= 0; i--) {
 						var toAdd = fontChildChildren[i];
@@ -621,6 +633,65 @@ function equalAttrs(attrs1, attrs2, ignoreID) {
 	return true;
 }
 
+function isInArray(item, array) {
+	for (var i = 0; i < array.length; i++) {
+		if (array[i] == item) { return true; }
+	}
+	return false;
+}
+
+function stylesAreEqual(style1, style2) {
+
+	style1 = style1 != undefined ? style1.value : '';
+	style2 = style2 != undefined ? style2.value : '';
+
+	style1 = style1.split(';');
+	style2 = style2.split(';');
+
+	var dict1 = {}, dict2 = {}, styles = [[style1, dict1], [style2, dict2]];
+
+
+	for (var n = 0; n < styles.length; n++) {
+		var style = styles[n][0], dict = styles[n][1];
+
+		for (var i = 0; i < style.length; i++) {
+			var str = style[i];
+			var pos = str.indexOf(':');
+
+			if (pos == -1) continue;
+
+			dict[str.substring(0, pos)] = str.substring(pos+1);
+		}
+	}
+
+	var doesntMatter = ['line-height'];
+
+	var keys1 = Object.keys(dict1), keys2 = Object.keys(dict2);
+
+	console.log(dict1, "vs", dict2);
+	for (var i1 = 0, i2 = 0; i1 < keys1.length || i2 < keys2.length; ) {
+		var key1 = keys1[i1], key2 = keys2[i2];
+
+		if (isInArray(key1, doesntMatter)) {
+			i1++;
+			console.log('k');
+			continue;
+		}
+
+		if (isInArray(key2, doesntMatter)) {
+			i2++;
+			console.log('k');
+			continue;
+		}
+
+		i1++; i2++;
+	}
+
+	if (i1 != keys1.length || i2 != keys2.length) return false;
+
+	return true;
+}
+
 function equalFontAttrs(attrs1, attrs2, ignoreID) {
 	if (attrs1 == undefined || attrs2 == undefined) return attrs1 == attrs2;
 	
@@ -647,6 +718,8 @@ function equalFontAttrs(attrs1, attrs2, ignoreID) {
 
 		if (attrs1[key].value != attrs2[key].value) return false;
 	}
+
+	if (!stylesAreEqual(attrs1['style'], attrs2['style'])) return false
 	
 	return true;
 }

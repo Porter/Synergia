@@ -2,8 +2,8 @@
 <html>
 	<head>
 		<title>Connectivity</title>
-		<script src="/socket.io-1.2.0.js"></script>
-		<script src="/jquery-1.11.1.js"></script>
+		<script src="/public/js/socket.io-1.2.0.js"></script>
+		<script src="/public/js/jquery-1.11.1.js"></script>
 		<script type="text/javascript" src="/public/bootstrap/js/bootstrap.min.js"></script>
 		
 		<link href="/public/bootstrap/css/bootstrap.min.css" rel="stylesheet">
@@ -20,11 +20,21 @@
 			}
 
 			
-	
+			.stylish {
+				    color: black;
+				    background-color: white;
+				    width: 50%;
+				    margin-top: 20px;
+				    margin-bottom: 20px;
+				    line-height: 80px;
+				    list-style-type: none;
+				    border-radius: 20px;
+
+			}
 
 			#Heading {
-				width:40%;
-				background-color: rgb(121, 101, 141);
+				width:30%;
+				background-color:rgb(77, 112, 219);
 				color:white;
 				font-family: "Optima";
 				font-size: 40px;
@@ -46,23 +56,16 @@
 				color:white;
 			}
 
-			.list{
-				background-color: rgb(220,220,220);
-				margin-top: 10px;
-				margin-right:50px;
-				margin-left:50px;
-				border-radius: 10px;
-				color:black;
-				font-size: 20px;
-				line-height: 40px;
-				letter-spacing: .5px;
-				font-family:"Optima";
-			}
+			
 
 			#docName{
 				color:white;
 			}
 
+			.list{
+				font-size: 24px;
+				font-family:"Copperplate";
+			}
   
 		</style>
 	</head>
@@ -79,7 +82,7 @@
 			<ul class="list">
 
 			{% for doc in documents %}
-			  <li><a href="/docs/view?doc={{ doc._id.toString() }}&title={{ doc.name }}"> {{ doc.name }} </a><span id='{{doc._id.toString()}}'></span></li>
+			  <li class="stylish"><a href="/docs/view?doc={{ doc._id.toString() }}&title={{ doc.name }}"> {{ doc.name }} </a><span id='{{doc._id.toString()}}'></span></li>
 			{% endfor %}
 
 			</ul>
