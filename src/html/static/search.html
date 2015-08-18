@@ -1,0 +1,90 @@
+
+<head>
+	<script src="/public/js/socket.io-1.2.0.js"></script>
+	<script src="/public/js/jquery-1.11.1.js"></script>
+	<link href="/public/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.15/angular.min.js"></script>
+
+</head>
+
+<style>
+
+
+</style>
+
+
+<body style="background-color: lightgrey;">
+
+	<div ng-app="myApp" ng-controller="myController">
+
+		<input ng-model="inp" ng-change="jk()" type="text">
+
+
+		<br/><br/>
+		<span ng-repeat="d in data">
+			{{d.user}}
+			<br/>
+		</span>
+
+	</div>
+
+
+</body>
+
+<script type="text/javascript">
+
+	var app = angular.module('myApp', []);
+	app.controller('myController', ['$scope', '$http', function($scope, $http) {
+
+		$scope.data = [];
+
+		toSearch = undefined, waiting = false, timeout = undefined;
+
+		logic = function(q) {
+			timeout = undefined;
+			console.log('checking ', q);
+			checkServer = function(query) {
+				waiting = true; // we wait for the server to respond
+
+				query = query || $scope.inp;
+				console.log("getting " + query);
+				
+				$http.get('/searchFriends?query='+ query)
+				.success(function(reply) {
+
+					console.log("got " + query)
+					// the server responded
+					$scope.data = reply;
+
+					if (toSearch && toSearch != query) { // if user has typed in the meantime
+						console.log('happened in meantime', toSearch)
+						checkServer(toSearch);
+						toSearch = undefined; // let's us know that we are checking the freshest input from user
+					}
+					else {
+						toSearch = undefined;
+						waiting = false;
+					}
+				});
+			};
+
+			if (waiting) { toSearch = $scope.inp; } // current input is invalidated
+			else { checkServer(q); }
+		}
+
+		$scope.jk = function() {
+
+			if (!timeout) {
+				console.log("going to check " + $scope.inp + " if nothing happens");
+				timeout = setTimeout(function() { logic($scope.inp) }, 200);
+			}
+			else {
+				console.log("something happened. checking " + $scope.inp + " if nothing happens");
+				clearTimeout(timeout);
+				timeout = setTimeout(function() { logic($scope.inp) }, 200);
+			}
+
+		};
+	}]);
+
+</script>

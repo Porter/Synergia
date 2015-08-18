@@ -42,7 +42,7 @@ module.exports = {
         struct: doc[0].documentElement.getElementsByTagName("body")[0].innerHTML,
         val: doc[1], 
         user: doc[3],
-
+        lastModified: new Date()
         }
       });
     }
@@ -109,11 +109,24 @@ module.exports = {
             var user = users[socket.request.user];
             if (user['x'] <= 1) {
               delete users[socket.request.user];
+
+              var usrs = db.collection('g');
+
+              var str = 'lastVisited.' + socket.doc;
+              var toSet = {};
+              toSet[str] = {date: new Date(), name: documents[socket.doc][5], id:socket.doc, edited: socket.docEdited == true}; // == true to prevent undefined being stored
+
+              usrs.update(
+                {_id: BSON.ObjectID(socket.request.user) },
+                {'$set':toSet},
+                {upsert:true},
+                function(err, reply) {
+                  if (err) throw err;
+                });
             }
             else {
               user['x']--;
             }
-            
           }
 
           socket.broadcast.to(socket.doc).emit("users", [socket.request.user, users[socket.request.user]] );
@@ -508,6 +521,8 @@ module.exports = {
         changeCursor(documentId, user, cursorChange, socket, callback);
         return;
       }
+
+      socket.docEdited = true;
 
       var changes = JSON.parse(msg);
 

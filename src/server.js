@@ -137,37 +137,9 @@ function runServer(db, callback) {
   var mySocket = require('./js/socket');
   mySocket.foo(io, passportSocketIo, secretKey, sessionStore, channels, changejs, jsdom, winston, mongo, db, secure_random, async, stats, notifier);
 
-  require('./js/api').foo(app, channels, db, secure_random, async); 
+  require('./js/api').foo(app, channels, db, secure_random, async, swig, BSON, mySocket); 
   require('./js/test').foo(app, pg); 
 
-
-  app.get('/aval', function(req, res) {
-    
-
-    var documents = mySocket.getDocuments();
-
-    var users = {};
-    for (key in documents) {
-      var len = Object.keys(documents[key][2]).length;
-      if (len != 0) {
-        users[key] = len;
-      }
-    }
-
-    res.end(JSON.stringify(users));
-  })
-
-  app.get('/', loggedIn, function(req, res){
-
-    var collection = db.collection('documents');
-
-    collection.find({}).toArray(function(err, docs) {
-      res.end(swig.renderFile(__dirname + "/html/dynamic/index.html", {
-        username: JSON.stringify(req.user),
-        documents: docs,
-      }));
-    }); 
-  });
 
   app.get('/docs/view', loggedIn, function(req, res){
     console.log("req.user: " + JSON.stringify(req.user));
@@ -183,8 +155,6 @@ function runServer(db, callback) {
         username: reply['user'] || reply['displayName'] || reply['email']
       })); 
     });
-
-    
   });
 
 
@@ -232,7 +202,6 @@ function runServer(db, callback) {
   });
 
   app.use(function(req, res, next) {
-    console.log("o:" + req.originalUrl);
     if (req.path.indexOf('.') === -1) {
       var file = __dirname + "/html/static" + req.path + '.html';
       fs.exists(file, function(exists) {

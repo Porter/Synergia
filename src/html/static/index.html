@@ -1,0 +1,350 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Connectivity</title>
+		<script src="/public/js/socket.io-1.2.0.js"></script>
+		<script src="/public/js/jquery-1.11.1.js"></script>
+		<script src="/public/js/markup.min.js"></script>
+		<script type="text/javascript" src="/public/bootstrap/js/bootstrap.min.js"></script>
+		<script src="/public/js/angular.min.js"></script>
+		
+		<link href="/public/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+
+		<style>
+
+	
+
+			body{
+				background-color: rgb(15,4,87);
+		
+				
+			}
+			
+			html,body
+			{
+			  height: 100%;
+			}
+
+			.stylish {
+				    color: black;
+				    background-color: white;
+				    width: 50%;
+				    margin-top: 20px;
+				    margin-bottom: 20px;
+				    line-height: 80px;
+				    list-style-type: none;
+				    border-radius: 20px;
+
+			}
+
+			#Heading {
+				width:30%;
+				background-color:rgb(77, 112, 219);
+				color:white;
+				font-family: "Optima";
+				font-size: 40px;
+				padding-top: 20px;
+				padding-bottom: 20px;
+				padding-right:5px;
+				padding-left:5px;
+				margin-top: 100px;
+				border-radius: 1px 30px 1px 30px;
+
+			}
+
+			#createNew{
+				font-size: 18px;
+				font-family:"Courier";
+				padding-top:10px;
+				padding-bottom:10px;
+				background-color: rgb(15,4,87);
+				color:white;
+			}
+
+			
+			#docName{
+				color:white;
+			}
+
+			.list{
+				font-size: 24px;
+				font-family:"Copperplate";
+			}
+
+			#sideBarRight {
+				position: fixed;
+				right: 0;
+				top: 0;
+				width: 320px;
+				height: 100%;
+				background: red;
+			}
+
+			#sideBarRight > ul {
+				width: 100%;
+				height: 100%;
+				list-style-type: none;
+				overflow: scroll;
+			}
+
+			@media screen and (max-width: 992px) {
+			      #sideBarRight {
+			           width: 220px;
+			      }
+			 }
+
+			 .centerV {
+			  position: relative;
+			  top: 50%;
+			  transform: translateY(-50%);
+			}
+
+			.sideBarImg {
+				margin: 15px; 
+				width: 75px;
+				height: 75px
+			}
+
+			.sideBarRightRow {
+				border-bottom: 1px solid #000;
+				margin: 0;
+			}
+
+			.sideBarRightRow > div {
+				padding: 0;
+			}
+
+			.event {
+				width: 100%;
+				height: 200px;
+				background: blue;
+			}
+  
+		</style>
+	</head>
+
+	<body>
+		
+		<div ng-app="myApp" ng-controller="myCntrl">
+
+			<center>
+
+			
+				<div id="sideBarRight" >
+
+					<div class="row sideBarRightRow" style="height:100px; " ng-cloak ng-repeat="event in events()">
+						<div class="col-md-4 hidden-sm hidden-xs" style="height:100%">
+							<a href="/profile?user={{event._id}}">
+								<center>
+									<img class="sideBarImg" src="/imgs?user={{event._id}}"></img>
+								</center>
+							</a>
+						</div>
+						<div class="col-md-8" style="text-align:left; height: 100%;">
+							<br style="line-height:1.7" />
+							<div style="padding-left: 15%">
+								<a href="/profile?user={{event._id}}">{{event.user}}</a> {{event.status}} <a href="/docs/view?doc={{docId}}">{{event.docName}}</a><br/> on {{event.weekDay}} at {{event.time}}
+							</div>
+						</div>
+					</div>
+
+				</div>
+		
+				<h2 id="Heading">LOCAL SYNERGIE</h2>
+
+				<br/><br/>
+
+
+
+				<ul class="list" ng-repeat="doc in documents">
+				<li class="stylish"><a href="/docs/view?doc={{ doc._id.toString() }}&title={{ doc.name }}"> {{ doc.name }} </a><span id='{{doc._id.toString()}}'></span></li>
+
+				</ul>
+
+
+				<form onsubmit="javascript:thing(); return false;">
+					<input id="name" type="text">
+					<input type="submit" value="CREATE NEW">
+				</form>
+
+			</center>
+		
+		</div>
+		
+		
+		
+	</body>
+
+	<script>
+
+		var days = ["Sun", "Mon", "Tues", "Wed", "Thu", "Fri", "Sat"];
+		var avalData, eventData, modifiedEventData;
+
+		var app = angular.module('myApp', []);
+
+		function checkCrossover() {
+			if (!avalData) { console.log("no aval data"); return; }
+			if (!modifiedEventData) { console.log("no modified event data"); return }
+
+			var changed = false;
+
+			for (doc in avalData) {
+				console.log(doc);
+				var document_ = avalData[doc];
+				for (var i = 0; i < document_.length; i++) {
+					var user = document_[i];
+					
+					console.log("...", user);
+					for (var n = 0; n < modifiedEventData.length; n++) {
+						var ev = modifiedEventData[n];
+
+						if (ev._id == user && ev.docId == doc) {
+							modifiedEventData.splice(n, 1);
+							n--;
+						}
+					}
+				}
+			}
+		}
+
+
+		function getEvents(fromServer) {
+			eventData = fromServer;
+			resps = [];
+
+			for (var i = 0; i < fromServer.length; i++) {
+				var r = fromServer[i];
+
+				var keys = Object.keys(r['lastVisited']);
+				for (var n = 0; n < keys.length; n++) {
+					var key = keys[n];
+					var time = new Date(r.lastVisited[key].date);
+					
+					var hours = time.getHours(), mins = time.getMinutes(), p = "am";
+					if (hours > 12) { hours -= 12; p = "pm"; }
+					if (hours == 0) hours = 12; //am
+					mins = "" + mins;
+					if (mins.length == 1) mins = "0" + mins;
+
+					var clockTime = hours + ':' + mins + " " + p
+					if (time.getHours() == 0 && time.getMinutes == 0) clockTime = "midnight"; 
+
+					console.log(r);
+
+					resps.push( {
+						_id: r._id,
+						user: r.user,
+						docId: r.lastVisited[key].id,
+						docName: r.lastVisited[key].name,
+						weekDay: days[ time.getDay() ],
+						time: clockTime,
+						status: r.status || r.lastVisited[key].edited ? 'edited' : 'viewed',
+						date: time
+					});
+				}
+			}
+
+			return resps;
+		}
+
+		
+		app.controller('myCntrl', ['$scope', '$interval', '$http', function($scope, $interval, $http) {
+
+		    $http.get("/f")
+		    .success(function(response) {
+
+		    	eventDate = response;
+
+		    	
+		    	var resps = getEvents(response);
+				resps.sort(function(a, b) { return b.date.getTime() - a.date.getTime(); });
+
+
+		    	console.log(resps);
+		    	modifiedEventData = resps;
+		    	$scope.events = function() { return modifiedEventData; };
+
+		    	console.log("checking");
+		    	check($scope);
+		    	$interval(check, 5000, 0, true, $scope);
+
+
+		    });
+
+		    $http.get("/getDocuments").success(function(response) { 
+
+		    	response.sort(function (a, b) {
+		    		var d1 = a.lastModified, d2 = b.lastModified;
+
+		    		if (!d1 && !d2) return 0;
+		    		if (!d1) return 1;
+		    		if (!d2) return -1;
+
+		    		d1 = new Date(d1);
+		    		d2 = new Date(d2);
+
+		    		return d2.getTime() - d1.getTime();
+		    	})
+		    	$scope.documents = response;
+		    });
+		}]);
+
+
+		function check(scope) {
+			console.log("checking 1");
+			$.getJSON('/aval', function(resp){ 
+				console.log("got it");
+				avalData = resp;
+				var lis = $('li');
+				for (var i = 0; i < lis.length; i++) {
+					lis[i].childNodes[1].innerHTML = "";
+				}
+
+				for (var key in resp) {
+					var amount = resp[key].length;
+					$('#' + key)[0].innerHTML = " | " + amount + " " + (amount == 1 ? "user" : "users");
+				}
+				console.log("checking checkCrossover")
+				checkCrossover();
+				console.log(modifiedEventData);
+				scope.$apply();
+			});
+		}
+
+		status = 0;
+
+		function onTimeout() {
+			alert("timed out");
+		}
+
+
+		function thing () {
+			var doc = $('#name').val();
+
+
+			var socket = io();
+
+			var to = setTimeout(onTimeout, 5 * 1000);
+
+			socket.on('connect', function () {
+				status = 1;
+			    socket.emit('createDocument', doc, function (data) {
+			    	clearTimeout(to);
+
+			    	if (data == -1) {
+				    	alert("ajsldfj");
+				    }
+				    else {
+				    	window.location.href = '/docs/view?doc=' + data;
+				    }
+			    });
+			});
+
+
+		}
+
+	</script>
+	
+	
+</html>

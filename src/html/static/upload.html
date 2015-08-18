@@ -1,0 +1,119 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Connectivity</title>
+		<script src="/public/js/socket.io-1.2.0.js"></script>
+		<script src="/public/js/jquery-1.11.1.js"></script>
+		<script type="text/javascript" src="/public/bootstrap/js/bootstrap.min.js"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
+		
+		<link href="/public/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+		<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css">
+
+
+
+		<style>
+
+	
+
+			body{
+				background-color: rgb(15,4,87);		
+			}
+
+			
+			.stylish {
+				    color: black;
+				    background-color: white;
+				    width: 50%;
+				    margin-top: 20px;
+				    margin-bottom: 20px;
+				    line-height: 80px;
+				    list-style-type: none;
+				    border-radius: 20px;
+
+			}
+
+			#Heading {
+				width:80%;
+				height: 300px;
+				background-color:rgb(77, 112, 219);
+				color:white;
+				margin-top: 50px;
+			}
+
+			#profile {
+				position: relative;
+				width: 10%;
+				margin-left: 5%;
+				background-color: yellow;
+			}
+
+			#createNew{
+				font-size: 18px;
+				font-family:"Courier";
+				padding-top:10px;
+				padding-bottom:10px;
+				background-color: rgb(15,4,87);
+				color:white;
+			}
+
+			#tabs {
+				width: 80%;
+				background: none;
+				border: none;
+			}
+
+			#tabs > ul {
+				background: none;
+			}
+
+			#tabs > div {
+				background-color: white;
+			}
+
+			.ui-widget-header {
+				border-left: none;
+				border-right: none;
+				border-top: none;
+			}
+
+
+  
+		</style>
+	</head>
+
+	<body>
+		
+		<form action="/upload" method="post" enctype='multipart/form-data'>
+			<input type="file" name="image"><br/>
+			<input type="hidden" value="hi" name="ol">
+			<input type="submit" value="submit">
+		</form>
+
+
+	</body>	
+
+
+	<script type="text/javascript">
+		$(document).ready(function() {
+			var pic = $('#profile')[0];
+			var back = $('#Heading')[0];
+
+			var rect = pic.getBoundingClientRect();
+			var headingRect = back.getBoundingClientRect();
+
+			pic.style.height = rect.width + "px";
+
+			pic.style.top = (rect.width + headingRect.height)/-2 + "px";
+
+
+
+			 $( "#tabs" ).tabs();
+		});
+
+		
+
+	</script>
+
+	
+</html>
