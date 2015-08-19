@@ -1,0 +1,742 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Connectivity</title>
+		<script type="text/javascript" src="/public/js/socket.io-1.2.0.js"></script>
+		<script type="text/javascript" src="/public/js/jquery-1.11.1.js"></script>
+		<script type="text/javascript" src="/public/bootstrap/js/bootstrap.min.js"></script>
+		<script type="text/javascript" src="/public/js/change.js"></script>
+		<script type="text/javascript" src="/public/js/tinycolor.js"></script>
+		
+		<link href="/public/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+	</head>
+	
+
+
+<style>
+		body {
+			background: rgb(15,4,87);
+		}
+	
+	.title {
+		font-size: 24px;
+		font-family:"Courier";
+		font-weight: bold;
+		padding-bottom: none;
+		color:white;
+	}
+	
+	#main {
+		height: 85vh;
+		
+	}
+	#mainContent {
+		position: fixed;
+		top: 0;
+		left: 0;
+		padding: 0;
+		height: 100px;
+		width: 0px;
+		overflow-y: hidden;
+		outline: none;
+		font-size: 24px;
+		background-color: #fff;
+		nothing: rgb(255, 246, 211);
+		border-radius: 0px;
+		border: none;
+		resize: none;
+	}
+
+	#testArea {
+		background-color:rgb(255, 255, 255);
+		height: 100vh;
+		z-index: -1;
+		font-size: 18px;
+		font-family: "Courier";
+		padding-left: 20px;
+		padding-top: 15px;
+		border: 4px solid rgb(51, 133, 51);
+		border-radius:20px;
+		margin-top:2vh;
+		overflow: scroll;
+		text-align: left;
+	}
+	
+	.row {
+		width:100%;
+	}
+	
+	.kix-cursor {
+	  cursor: text;
+	  position: absolute;
+	  z-index: 24;
+	}
+	
+
+	.kix-cursor-caret {
+	  position: absolute;
+	  width: 0px;
+	  border-left: 2px solid;
+	  font-size: 0;
+	}
+
+	.kix-cursor-top {
+	  position: absolute;
+	  width: 6px;
+	  left: -2px;
+	  top: -2px;
+	  height: 6px;
+	  font-size: 0;
+	}
+	
+
+	.kix-cursor-name {
+	  position: absolute;
+	  font-size: 10px;
+	  color: #fff;
+	  top: -14px;
+	  left: -2px;
+	  padding: 2px;
+	  white-space: nowrap;
+	}
+
+	#main {
+		position: relative;
+
+		width: 8.5in;
+	}
+
+	.wrapword{
+		white-space: -moz-pre-wrap !important;  /* Mozilla, since 1999 */
+		white-space: -pre-wrap;      /* Opera 4-6 */
+		white-space: -o-pre-wrap;    /* Opera 7 */
+		white-space: pre-wrap;       /* css-3 */
+		word-wrap: break-word;       /* Internet Explorer 5.5+ */
+		white-space: -webkit-pre-wrap; /* Newer versions of Chrome/Safari*/
+		word-break: break-all;
+		white-space: normal;
+
+	}
+	
+	
+	
+		</style>
+
+	
+	<body>
+		<center>
+			<div id="main">
+				<div class="title" id="title"></div>
+				<div id="mainArea">
+					<div id="testArea" class="main" tabindex=-1></div>
+				</div>
+				<div id="cursors" ></div>
+				<textarea id="mainContent"></textarea>
+			</div>
+		</center>
+
+		<div id="cursors-template-container" style="display: none">
+			<div class="kix-cursor docs-ui-unprintable" style="opacity: 1; left: 0px; top: 0px;"><div class="kix-cursor-caret" style="border-color: rgb(15, 157, 88); height: 22.4px;"></div><div class="kix-cursor-top" style="opacity: 1; background-color: rgb(15, 157, 88);"></div><div class="kix-cursor-name" style="opacity: 0; display: none; background-color: rgb(15, 157, 88);"></div><span style="display:none"></span></div>
+		</div>
+
+
+	</body>
+
+	<script type="text/javascript">
+
+		window.onerror = function(msg, url, line, col, error) {
+			var extra = !col ? '' : '\ncolumn: ' + col;
+		   extra += !error ? '' : '\nerror: ' + error;
+
+		   // You can view the information in an alert to see things working like this:
+		   alert("Error: " + msg + "\nurl: " + url + "\nline: " + line + extra);
+		   console.log(error.stack);
+
+		   var toSend = {
+		   	message:msg,
+		   	my_msg:msg,
+		   	stack:error.stack,
+		   	line: line
+		   };
+
+		   $.post("/reportError", {error:toSend}, function (resp) {
+
+		   });
+
+		   $('#status').css('background-color', 'red');
+
+		   var suppressErrorAlert = true;
+		   // If you return true, then error alerts (like in older versions of 
+		   // Internet Explorer) will be suppressed.
+		   return suppressErrorAlert;
+		};
+
+
+		function getQueryParams() {
+			qs = document.location.search;
+			qs = qs.split('+').join(' ');
+			
+			var params = {},
+			tokens,
+			re = /[?&]?([^=]+)=([^&]*)/g;
+			
+			while (tokens = re.exec(qs)) {
+				params[decodeURIComponent(tokens[1])] = decodeURIComponent(tokens[2]);
+			}
+			
+			return params;
+		}
+
+		var title = getQueryParams()['title'];
+		if (title) $('#title').html("<a href='/doc/view?doc=" + getQueryParams()['doc'] + "'>" +  title + "</a>");
+
+		function getRange(pos) {
+
+			var n = nodeAt(pos[0]);
+
+			if (!n) return n;
+
+			if (n[1] != 0) {
+				for (var i = 0; i < pos[1]; i++) {
+					n[0] = nextNode(n[0]);
+					n[1] = 0;
+				}
+			}
+
+			var nodeName = n[0].nodeName.toLowerCase();
+			while (nodeName != "#text" && n[0].childNodes.length > 0) {
+				n[0] = n[0].childNodes[0];
+			 }
+
+			 if (n[0].nodeName.toLowerCase() == "br") n[0] = n[0].parentNode; // can't have the cursor in a <br>
+
+			return n;
+		}
+
+		var socket = io();
+		
+		
+		var oldNodes, structure, text, lastPush, lastChanges, preForm, from, oldCursor = [], userLookup, undefinedUsers = [], notifying = false;
+		var edit, edits = {}, expecting, changed, lastConfirmedStructure, lastConfirmedText, expectingResp = [];
+		var userId;
+
+		var cursorPositions = {}, lastSize;
+		
+		socket.on('connect', function(s) {
+			
+
+			documentId = getQueryParams()['doc'];
+			socket.emit('init', documentId);
+		});
+
+		function nextEdit(e) {
+			return (e+1)%100;
+		}
+
+		function applyPreviousEdits() {
+			for (var i = nextEdit(edit); edits[i] != undefined; i = nextEdit(i)) {
+				var e = edits[i];
+				e['func'](e['msg']);
+
+				edits[i] = undefined;
+			}
+		}
+
+		function applyUpdate(msg, struct, text_) {
+			var changes_ = JSON.parse(msg[0]);
+			var textChanges_ = changes_[1];
+
+
+
+			var oldText = text_;
+			text_ = executeChanges(text_, textChanges_);
+
+			applyTextChangesToStructure(struct, oldText, textChanges_, msg[4], text_);
+
+			form2(struct, msg[4], true);
+			form(struct);
+
+			$('#testArea')[0].outerHTML = struct.outerHTML;
+			setText($('#testArea')[0], struct, text_);
+
+			expecting = [expecting[0], nextEdit(edit)];
+
+			return [struct, text_];
+		}
+
+		function confirmIntegrity(fus, fut, fss, fst) {
+			if (fut != fst) {
+				console.log("updated text deosn't match");
+				console.log("from server", fst);
+				console.log("from us    ", fut);
+
+				alert("updated text doesn't match");
+			}
+
+			if (!strippedNodeTreesAreEqual(fus, fss)) {
+				console.log("updated structure deosn't match");
+				console.log("from server", strip(fss));
+				console.log("from us    ", strip(fus));
+
+				alert("updated structure doesn't match");
+			}
+		}
+
+		socket.on('update', function(msg) {			
+			msg = JSON.parse(msg);
+
+			var gotExpecting = expecting[0] == "update" && expecting[1] == msg[3];
+
+			if (gotExpecting) {
+				console.log("got expected update");
+			}
+			else {
+				console.log("didn't get expecting");
+				console.log("expecting " + JSON.stringify(expecting));
+				console.log("got update with " + msg[3]);
+				console.log(JSON.stringify(msg));
+			}
+
+			console.log('update ' + edit + " vs " + msg[3]);
+
+			var next = nextEdit(edit);
+			if (msg[3] != next) {
+				edits[msg[3]] = {msg:msg, func:applyUpdate};
+				return;
+			}
+
+			var el = document.getElementById("testArea"), differences;
+
+			changed = el.innerHTML != oldNodes.innerHTML;
+
+
+			// if (changed) {
+			// 	differences = getNodeChanges(oldNodes, el, getCursor3());
+			// 	console.log("change between inp and update");
+			// 	console.log(JSON.stringify(differences));
+			// }
+
+			edit = msg[3];
+
+
+
+			if (expecting[0] == 'resp') { // we gotta go back in time and apply this edit first
+
+				console.log('last confirmed');
+				console.log(strip(lastConfirmedStructure));
+				console.log(lastConfirmedText);
+
+				expectingResp = applyUpdate(msg, lastConfirmedStructure, lastConfirmedText);
+
+				lastConfirmedText = expectingResp[1];
+
+				lastConfirmedStructure = expectingResp[0].cloneNode();
+				lastConfirmedStructure.innerHTML = expectingResp[0].innerHTML;
+
+				applyPreviousEdits();
+
+				console.log('last confirmed 2');
+				console.log(strip(lastConfirmedStructure));
+				console.log(lastConfirmedText);
+
+
+				console.log('expecting resp');
+				console.log(strip(expectingResp[0]));
+				console.log(expectingResp[1]);
+
+				// so now the we've got back to lastConfirmed and applied the update to it.
+				// Now we have to apply the change we pushed
+
+				console.log("recieved changes", JSON.stringify( JSON.parse(msg[0])[1]  ));
+				console.log("b4", JSON.stringify(lastChanges[1]));
+				applyOffsets(JSON.parse(msg[0])[1], lastChanges[1]);
+				console.log("after", JSON.stringify(lastChanges[1]));
+
+				// the offsets are now taken care of
+
+				
+				
+
+				console.log('expecting resp2');
+				console.log(strip(expectingResp[0]));
+				console.log(expectingResp[1]);
+
+				var newText = executeChanges(expectingResp[1], lastChanges[1]);
+
+
+				console.log('last changes', JSON.stringify(lastChanges[1]));
+				applyTextChangesToStructure(expectingResp[0], expectingResp[1], lastChanges[1], color, newText);
+				console.log('done', newText);
+				form2(expectingResp[0], msg[4], true);
+				form(expectingResp[0]);
+
+				expectingResp[1] = newText;
+
+				confirmIntegrity(lastConfirmedStructure, lastConfirmedText, createNodeTree(msg[1]), msg[2]);
+				
+
+				$('#testArea')[0].outerHTML = expectingResp[0].outerHTML;
+				setText($('#testArea')[0], expectingResp[0], expectingResp[1]);
+
+				oldNodes = getNode();
+
+				structure = expectingResp[0].cloneNode();
+				structure.innerHTML = expectingResp[0].innerHTML;
+
+				text = expectingResp[1];
+
+
+
+				if (changed) {
+					
+					applyOffsets(JSON.parse(msg[0])[1], differences[1]);
+
+					var structureCopy = structure.cloneNode(true);
+					var textCopy = text; // strings are immutable yo
+
+					var newText = executeChanges(textCopy, differences[1]);
+
+					applyTextChangesToStructure(structureCopy, textCopy, differences[1], color, newText);
+
+					$('#testArea')[0].outerHTML = structureCopy.outerHTML;
+					setText($('#testArea')[0], structureCopy, newText);
+
+					console.log('changed, going from ');
+					console.log(lastConfirmedText);
+					console.log('to');
+					console.log(newText);
+				}
+			}
+
+			else {
+				console.log('in else');
+
+				console.log("from", strip(lastConfirmedStructure));
+				console.log(lastConfirmedText);
+				var things = applyUpdate(msg, lastConfirmedStructure, lastConfirmedText);
+				lastConfirmedStructure = things[0];
+				lastConfirmedText = things[1];
+				
+				console.log("to ", strip(lastConfirmedStructure));
+				console.log(lastConfirmedText);
+
+
+
+				structure = lastConfirmedStructure.cloneNode(true);
+				text = lastConfirmedText;
+
+				$('#testArea')[0].outerHTML = structure.outerHTML;
+				setText($('#testArea')[0], structure, text);
+
+				oldNodes = getNode();
+
+				confirmIntegrity(structure, text, createNodeTree(msg[1]), msg[2]);
+
+
+				if (changed) {
+					
+					console.log("change between check and update");
+
+					applyOffsets(JSON.parse(msg[0])[1], differences[1]);
+
+					var structureCopy = structure.cloneNode(true);
+					var textCopy = lastConfirmedText; // strings are immutable yo
+
+					var newText = executeChanges(textCopy, differences[1]);
+
+					applyTextChangesToStructure(structureCopy, textCopy, differences[1], color, newText);
+
+					$('#testArea')[0].outerHTML = structureCopy.outerHTML;
+					setText($('#testArea')[0], structureCopy, newText);
+
+					console.log('changed, going from ');
+					console.log(lastConfirmedText);
+					console.log('to');
+					console.log(newText);
+				}
+			}
+
+			console.log(text);
+			console.log($('#testArea')[0].textContent);
+			console.log("done updating");
+
+			socket.emit('updateRecieved', ['update', edit]);
+
+			$('#testArea').attr('contenteditable', 'false');
+
+			
+			// todo check for changes here, otherwise they'll be forgotten,
+			// because:   changes_ = changes(old, val);
+			// if there are changes, they'll have to merged
+		});
+		
+		socket.on('init', function(msg) {
+			console.log(msg);
+			msg = JSON.parse(msg);
+			console.log("initing with " + msg['text']);
+			console.log("initing with " + msg['struct']);
+
+			userLookup = msg['userLookup'];
+
+			userId = msg['userId'];
+
+			text = msg['text'];
+			structure = createNodeTree(msg['struct']);
+			users = msg['currentUsers'];
+
+			lastConfirmedStructure = structure.cloneNode(true);
+			lastConfirmedText = text;
+
+			var len = structureLength(structure) + max(0, structure.childNodes.length - 1);
+			if (len != text.length) {
+				alert('length mismatch on init');
+
+				var newText = msg['text'];
+				if (len > newText.length) {
+					for (var i = 0 ; i < len - newText.length; i++) newText += " ";
+				}
+				else {
+					newText = newText.substring(0, len);
+				}
+
+				socket.emit('LengthMismatch', newText);
+			}
+
+			edit = msg['start'];
+			expecting = ['update', nextEdit(edit)];
+
+			console.log("struct");
+			console.log(structure);
+
+			$('#testArea')[0].outerHTML = structure.outerHTML;
+			setText($('#testArea')[0], structure, text);
+
+			color = msg['color'];
+			
+			oldNodes = getNode();
+			console.log("oldNodes init", strip(oldNodes));
+			lastPush = getNode();
+			lastStructure = nodeTree(oldNodes, color, true, false);
+
+			$('#title').html($('#title').html("<a href='/doc/view?doc=" + getQueryParams()['doc'] + "'>" +  msg['title'] + "</a>"));
+
+			var cursor = msg['cursor'];
+			console.log(cursor);
+
+			for (key in users) {
+				if (!cursor[key]) continue;
+				var data = {};
+		        data[key] = cursor[key];
+		        onCursorChange(data);
+			}
+
+			$('#testArea').scroll(function (ev) {
+				console.log('scroll');
+				for (var key in cursorPositions) {
+					var el = $('#cursor-' + key)[0];
+					if (el) {
+						setCursorPosition(el, cursorPositions[key][0], cursorPositions[key][1]);
+					}
+				}
+			});
+
+			$('#testArea').attr('contenteditable', 'false');
+		});
+
+		function setCursorPosition(el, left, top, height) {
+			console.log(left, top, height);
+			var testArea = $('#testArea')[0];
+			left -= testArea.scrollLeft;
+			top -=  testArea.scrollTop;
+			el.style.left = left + "px";
+			el.style.top  = top + "px";
+
+			height = height || parseInt(el.childNodes[3].innerHTML);
+			el.childNodes[3].innerHTML = height;
+
+			el.childNodes[0].style.height  = height + "px";
+
+			if (top < -height) {
+				el.style.display = "none";
+				el.childNodes[0].style.display = "none";
+				el.childNodes[1].style.display = "none";
+			}
+			else if (top < 0) {
+				el.style.display = "";
+				el.childNodes[0].style.display = "";
+				el.childNodes[1].style.display = "none";
+
+				console.log("setting height to " + (height+top-4));
+				el.style.top = "4px";
+				el.childNodes[0].style.height  = (max(height+top-4, 0)) + "px";
+			}
+			else if (top < 4) {
+				el.style.display = "";
+				el.childNodes[0].style.display = "";
+				el.childNodes[1].style.display = "none";
+			}
+			else {
+				if (!lastSize) {
+					el.style.display = "";
+					el.childNodes[0].style.display = "";
+					el.childNodes[1].style.display = "";
+				}
+				else {
+
+					if (top > lastSize[1]) {
+						el.style.display = "none";
+						el.childNodes[0].style.display = "none";
+						el.childNodes[1].style.display = "none";
+					}
+					else if (top > lastSize[1] - height) {
+						el.style.display = "";
+						el.childNodes[0].style.display = "";
+						el.childNodes[1].style.display = "";
+					}
+					else {
+						el.style.display = "";
+						el.childNodes[0].style.display = "";
+						el.childNodes[1].style.display = "";
+					}
+				}
+			}
+		}
+
+		socket.on('users', function(msg) {
+
+			var user = msg[0];
+			var userInfo = msg[1];
+
+			if (userInfo) {
+				users[user] = userInfo;
+			}
+			else {
+				if (users[user]) {
+					delete users[user];
+				}
+			}
+		});
+
+		socket.on('NewUserJoined', function (msg) {
+			var key = Object.keys(msg)[0];
+
+			userLookup[key] = msg[key];
+		});
+
+		function onCursorChange(msg) {
+			if (!userLookup) return;
+
+			var key = Object.keys(msg)[0];
+
+			if (key == userId) {
+				// we won't show our own cursor
+				return;
+			}
+
+			var cursorColor = users[key]['color'];
+
+			var cursor = document.getElementById('cursor-' + key);
+
+			console.log(cursor);
+
+			if (!cursor) {
+				console.log("creating");
+				cursor = $('#cursors-template-container').clone().children()[0];
+				cursor.id = "cursor-" + key;
+
+				cursor.childNodes[0].style.borderColor = cursorColor;
+				cursor.childNodes[1].style.backgroundColor = cursorColor;
+				cursor.childNodes[2].style.backgroundColor = cursorColor;
+				cursor.childNodes[2].innerHTML = userLookup[key]['user'] || userLookup[key]['displayName'];
+
+				$(cursor).hover(
+					function() {
+						this.childNodes[2].style.opacity = 1;
+						this.childNodes[2].style.display = "";
+						
+						this.childNodes[1].style.opacity = 0;
+						this.childNodes[1].style.display = "none";
+						
+					},
+
+					function () {
+						this.childNodes[1].style.opacity = 1;
+						this.childNodes[1].style.display = "";
+						
+						this.childNodes[2].style.opacity = 0;
+						this.childNodes[2].style.display = "none";
+					}
+				)
+
+				$('#cursors')[0].appendChild(cursor);
+			}
+
+			var height = 26*.9;
+
+			
+			if (msg[key]) {
+				var node = getRange(msg[key][0]);
+				if (node) {
+					var range = document.createRange();
+					range.setStart(node[0], node[1]);
+					range.setEnd(node[0], node[1]);
+
+					var span = document.createElement("span");
+					range.insertNode(span);
+
+					var rect = span.getBoundingClientRect();
+
+					var containerRect = $('#testArea')[0].getBoundingClientRect();
+
+					var left = rect.left - containerRect.left + $('#testArea')[0].scrollLeft;
+					var top  = rect.top - containerRect.top + $('#testArea')[0].scrollTop;
+
+					cursorPositions[key] = [left, top];
+					lastSize = [$('#testArea').width(), $('#testArea').outerHeight()];
+
+					setCursorPosition(cursor, left, top, height);
+
+					span.parentNode.removeChild(span);
+
+					cursor.style.display = "";
+				}
+				else {
+					cursor.style.display = "none";
+				}
+			}
+			else {
+				cursor.style.display = "none";
+			}
+		}
+
+		socket.on('cur', onCursorChange);
+
+		$(window).resize(function (ev) {
+			if (!lastSize) return;
+			return;
+
+			var size = [$('#testArea').width() / lastSize[0], $('#testArea').outerHeight() / lastSize[1]];
+			console.log(size);
+
+			for (var key in cursorPositions) {
+				var el = $('#cursor-' + key)[0];
+				if (el) {
+					setCursorPosition(el, (size[0] * cursorPositions[key][0]), (size[1]  * cursorPositions[key][1]));
+				}
+			}
+		});
+		
+
+		function getNode() {
+			var ta = $('#testArea');
+			var node = ta[0].cloneNode();
+
+			node.innerHTML = ta.html();
+
+			return node;
+		}
+
+		</script>
+	
+	
+</html>

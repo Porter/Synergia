@@ -10,7 +10,12 @@
 <style>
 
 img {
-	width: 10%;
+	width: 100px;
+	height: 100px;
+}
+
+li {
+	list-style-type: none;
 }
 
 </style>
@@ -22,7 +27,7 @@ img {
 
 		<ul>
 			<li ng-repeat="friend in friends">
-				<img src="/imgs?user={{friend._id}}" ></img>
+				<a href="/profile?user={{friend._id}}"><p> {{friend.user}}<img src="/imgs?user={{friend._id}}" ></img></a>
 			</li>
 		</ul>
 
@@ -36,7 +41,7 @@ img {
 	app.controller('myController', ['$scope', '$interval', '$http', function($scope, $interval, $http) {
 
 
-		$http.get("/myFriends")
+		$http.get('/api/friends/get')
 	    .success(function(response) {
 	    	$scope.friends = response;
 	    });

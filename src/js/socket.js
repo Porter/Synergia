@@ -100,6 +100,9 @@ module.exports = {
 
 
       socket.on('disconnect', function(){
+        connected--;
+        if (socket.isGhost) return;
+
         console.log(socket.request.user  + ' disconnected');
 
         if (socket.doc) {
@@ -127,9 +130,9 @@ module.exports = {
             else {
               user['x']--;
             }
-          }
 
-          socket.broadcast.to(socket.doc).emit("users", [socket.request.user, users[socket.request.user]] );
+            socket.broadcast.to(socket.doc).emit("users", [socket.request.user, users[socket.request.user]] );
+          }
         }
 
         socket.doc = undefined;
@@ -217,6 +220,10 @@ module.exports = {
 
       socket.on('init', function(msg){
         socket.join(msg);
+        var u = socket.handshake.headers.referer;
+
+        socket.isGhost = u.indexOf('/np?') > -1;
+        console.log(socket.isGhost);
 
         socket.doc = msg;
         socket.joinedDoc = new Date();
@@ -395,29 +402,34 @@ module.exports = {
           }
 
           var doc = documents[documentId];
+          
+          var color = '';
+          if (!socket.isGhost) {
 
-          var userColors = doc[3];
-          if (userColors[socket.request.user]) {
-            var u = socket.request.user;
-            color = colors[ userColors[socket.request.user]['color'] % colors.length];
-          }
-          else {
-            var len = Object.keys(userColors).length;
-            color = colors[len%colors.length];
+            var userColors = doc[3];
+            if (userColors[socket.request.user]) {
+              var u = socket.request.user;
+              color = '#ff0000';
+            }
+            else {
+              var len = Object.keys(userColors).length;
+              color = '#ff0000';
 
-            userColors[socket.request.user] = {color : len%colors.length};
+              userColors[socket.request.user] = {color : len};
 
-          }
+            }
 
-          var userInfo = doc[2][socket.request.user];
-          if (!userInfo) {
-            uc = {color: color, lastConfirmedEdit:-1, x:1, joined: new Date(), visibility: true};
-            // color of color, only logged in from one browser/tab, joined now, is active
-            
-            doc[2][socket.request.user] = uc;
-          } 
-          else {
-            userInfo['x']++;
+
+            var userInfo = doc[2][socket.request.user];
+            if (!userInfo) {
+              uc = {color: color, lastConfirmedEdit:-1, x:1, joined: new Date(), visibility: true};
+              // color of color, only logged in from one browser/tab, joined now, is active
+              
+              doc[2][socket.request.user] = uc;
+            } 
+            else {
+              userInfo['x']++;
+            }
           }
 
           var d= {};
@@ -432,9 +444,11 @@ module.exports = {
 
           d["userId"] = socket.request.user;
 
-
-          socket.broadcast.to(documentId).emit('users', [socket.request.user, doc[2][socket.request.user]] );
+          if (!socket.isGhost) {
+            socket.broadcast.to(documentId).emit('users', [socket.request.user, doc[2][socket.request.user]] );
+          }
           socket.emit('init', JSON.stringify(d) );
+          
 
           
           console.log('done initing ' + msg[0].request.user);
@@ -461,6 +475,9 @@ module.exports = {
 
 
     function confirm(socket, msg) {
+      if (socket.isGhost) return;
+
+
       var doc = documents[socket.doc];
 
       var usersOnDoc = Object.keys(doc[2]);
@@ -497,6 +514,11 @@ module.exports = {
     function changeDocument(msg, callback) {
 
       var socket = msg[0];
+      if (socket.isGhost) {
+        callback();
+        return;
+      }
+
       msg = msg[1];
 
       if (msg['customFunc']) {
@@ -529,7 +551,7 @@ module.exports = {
       var doc = documents[documentId];
 
 
-      var col = colors[ doc[3][socket.request.user]['color']%colors.length ];
+      var col = '#ff0000';//colors[ doc[3][socket.request.user]['color']%colors.length ];
       changejs.setDocument(doc[0].parentWindow.window.document);
       //changejs.setColor(col);
 

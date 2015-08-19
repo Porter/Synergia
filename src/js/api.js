@@ -109,7 +109,7 @@ module.exports = {
       c.findOne({user:req.query.user}, function(err, reply) {
         if (err) throw err;
 
-        if (!reply || !reply.img) { res.status(404).send("Not found"); return; }
+        if (!reply || !reply.img) { res.redirect("http://virtualpiano.net/wp-content/plugins/all-in-one-seo-pack/images/default-user-image.png"); return; }
 
         res.end(reply.img.buffer, 'binary');
       });
@@ -123,14 +123,15 @@ module.exports = {
 
         usr = usr || {};
 
-        var friends = usr.friends || [];
+        var friends = usr.friends || {};
+        friends = Object.keys(friends);
         friends.push(req.user);
 
         
         console.log(friends);
 
         var collection = db.collection('documents');
-        collection.find({creator:{'$in':friends}}).toArray(function(err, docs) {
+        collection.find({creator:{'$in':friends}}, {name:1, creator:1}).toArray(function(err, docs) {
           if (err) throw err;
 
           // var keys = Object.keys(docs);
@@ -145,22 +146,34 @@ module.exports = {
           // });
 
           res.setHeader('content-type', 'text/json');
-          res.end(JSON.stringify(docs));
+          res.end(JSON.stringify({documents: docs, user: req.user}));
         }); 
       });
     });
 
-    app.get('/myFriends', loggedIn, function(req, res) {
-      var friends = db.collection('g');
+    app.get('/api/friends/get', loggedIn, function(req, res) {
+      var people = db.collection('g');
 
-      friends.findOne({_id:BSON.ObjectID(req.user)}, {friends:1}, function(err, reply) {
+      var user = req.query.user || req.user;
 
-        res.setHeader('content-type', 'text/json');
-        res.end(JSON.stringify(reply.friends));
+      res.setHeader('content-type', 'text/json');
+      people.findOne({_id:BSON.ObjectID(user)}, {friends:1}, function(err, reply) {
+
+        reply = reply || {};
+        reply = reply.friends || {};
+
+        var friends = [];
+        for (var r in reply) {
+          friends.push(BSON.ObjectID(r));
+        }
+
+        people.find({_id:{'$in':friends}}, {user:1}).toArray(function (err, replies) {
+          res.end(JSON.stringify(replies));
+        });
       });
     });
 
-    app.get('/searchFriends', function(req, res) {
+    app.get('/searchPeople', function(req, res) {
       var query = req.query.query;
 
       var people = db.collection('g');
@@ -172,16 +185,46 @@ module.exports = {
       people.find( {user : { '$regex' : regex}}).toArray(function (err, users) {
         res.end(JSON.stringify(users));
       });
+    });
 
+    app.get('/befriend', loggedIn, function (req, res) {
+      var people = db.collection('g');
 
+      var toSet = {};
+      toSet['friends.' + req.query.user] = true;
+
+      people.update({_id:BSON.ObjectID(req.user)}, {'$set': toSet}, {upsert: true}, function(err, reply) {
+        res.redirect('/profile?user=' + req.query.user);
+      });
+    });
+
+    app.get('/api/user/info', loggedIn, function(req, res) {
+      var ppl = db.collection('g');
+
+      var user = req.query.user || req.user;
+
+      ppl.findOne({_id:BSON.ObjectId(user)}, {user:1}, function(err, reply) {
+        if (err) console.log(err);
+        if (reply) {
+          res.setHeader('content-type', 'text/json');
+          res.end(JSON.stringify(reply));
+        }
+        else res.end(req.user + " not found");
+
+      });
     });
 
 
-    app.get('/myDocuments', loggedIn, function(req, res){
+    app.get('/getUsersDocuments', loggedIn, function(req, res){
 
       var collection = db.collection('documents');
 
-      collection.find({creator:req.user}, {_id:1, name:1}).toArray(function(err, docs) {
+      var user = req.query.user || req.user;
+      if (!user) {
+        res.end('[]');
+      }
+
+      collection.find({creator:user}, {_id:1, name:1}).toArray(function(err, docs) {
         if (err) throw err;
 
         res.setHeader('content-type', 'text/json');
@@ -211,6 +254,63 @@ module.exports = {
         });
       });
     }
+
+    app.get('/api/doc/info/get', function(req, res) {
+      res.setHeader('content-type', 'text/json');
+
+      var id = req.query.id;
+      if (!id) { res.end('[]'); return; }
+
+      var usrs = db.collection('g');
+      var docs = db.collection('documents');
+
+      async.parallel([
+
+        function(callback) {
+          usrs.findOne({_id:BSON.ObjectID(req.user)}, {user:1}, function(err, reply){ 
+            callback(null, reply.user);
+          });
+        },
+
+        function(callback) {
+          docs.findOne({_id:BSON.ObjectID(id)}, {user:1}, function(err, reply){ 
+            callback(null, reply.user);
+          });
+        }
+
+        ],
+        function(err, results) {
+          console.log(results);
+
+          res.end(JSON.stringify({userId: req.user, username: results[0], color: results[1][req.user].color}));
+        });
+      
+    });
+
+    app.get('/api/user/colors/get', function(req, res) {
+      res.setHeader('content-type', 'text/json');
+
+      var usrs = db.collection('g');
+
+      var user = req.query.user || req.user;
+      usrs.findOne({_id:BSON.ObjectID(user)}, {colors:1}, function(err, reply) {
+        colors = reply.colors || [{}, {}, {}, {}, {}];
+
+        res.end(JSON.stringify(colors));
+      });
+    });
+
+    app.post('/api/user/colors/update', function(req, res) {
+      
+      var usrs = db.collection('g');
+
+      res.writeHead(200, {'content-type': 'text/plain'});
+
+      usrs.update({_id:BSON.ObjectID(req.user)}, {'$set':{colors:req.body.colors}}, function(err, reply) {
+        if (err) res.end(err);
+        else res.end("");
+      });
+    });
 
 
     app.get('/f', function(req, res) {

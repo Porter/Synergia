@@ -140,7 +140,7 @@ module.exports = {
 
         var state = req.param('state');
         if (state) {
-          res.redirect(decodeURIComponent);
+          res.redirect(decodeURIComponent(state));
         }
         else { 
           res.redirect("/");

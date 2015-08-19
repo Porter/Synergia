@@ -7,6 +7,7 @@
 		<script type="text/javascript" src="/public/bootstrap/js/bootstrap.min.js"></script>
 		<script type="text/javascript" src="/public/js/change.js"></script>
 		<script type="text/javascript" src="/public/js/tinycolor.js"></script>
+		<script src="/public/js/angular.min.js"></script>
 		
 		<link href="/public/bootstrap/css/bootstrap.min.css" rel="stylesheet">
 	</head>
@@ -197,6 +198,8 @@
 	
 	<body>
 
+		<div ng-app="myApp" ng-controller="myController">
+
 		<nav class="navbar navbar-inverse navbar-static-top">
 			<div class="container-fluid">
 				<!-- Brand and toggle get grouped for better mobile display -->
@@ -218,7 +221,7 @@
 				<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
 					
 					<ul class="nav navbar-nav navbar-right" style="margin-right: 5%">
-						<li><a href="javascript:alert('not live yet');">{{ username }}</a></li>
+						<li><a href="/profile?user={{userId}}">{{ username }}</a></li>
 						<li><a href="/logout">Sign out</a></li>
 					</ul>
 					
@@ -296,7 +299,7 @@
 		</div>
 		
 		
-		
+		</div>
 		
 	</body>
 
@@ -314,6 +317,32 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 </script>
 
 	<script type="text/javascript">
+
+		function getQueryParams() {
+			qs = document.location.search;
+			qs = qs.split('+').join(' ');
+			
+			var params = {},
+			tokens,
+			re = /[?&]?([^=]+)=([^&]*)/g;
+			
+			while (tokens = re.exec(qs)) {
+				params[decodeURIComponent(tokens[1])] = decodeURIComponent(tokens[2]);
+			}
+			
+			return params;
+		}
+
+		var app = angular.module('myApp', []);
+
+		app.controller('myController', ['$scope', '$http', function($scope, $http) {
+
+			var id = getQueryParams()['doc'];
+			$http.get('/api/doc/info/get?id='+id).success(function(response) {
+				$scope.username = response.username;
+			});
+
+		}]);
 
 		function e() { $('#status').css('display', ''); }
 
@@ -359,22 +388,6 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 
 		});
 
-
-
-		function getQueryParams() {
-			qs = document.location.search;
-			qs = qs.split('+').join(' ');
-			
-			var params = {},
-			tokens,
-			re = /[?&]?([^=]+)=([^&]*)/g;
-			
-			while (tokens = re.exec(qs)) {
-				params[decodeURIComponent(tokens[1])] = decodeURIComponent(tokens[2]);
-			}
-			
-			return params;
-		}
 
 		var title = getQueryParams()['title'];
 		if (title) $('#title').html(title);

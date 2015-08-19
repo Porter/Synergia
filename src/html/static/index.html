@@ -157,9 +157,14 @@
 
 
 
-				<ul class="list" ng-repeat="doc in documents">
+				<ul class="list" ng-repeat="doc in myDocuments">
 				<li class="stylish"><a href="/docs/view?doc={{ doc._id.toString() }}&title={{ doc.name }}"> {{ doc.name }} </a><span id='{{doc._id.toString()}}'></span></li>
+				</ul>
 
+				<hr/>
+
+				<ul class="list" ng-repeat="doc in otherDocuments">
+				<li class="stylish"><a href="/docs/view?doc={{ doc._id.toString() }}&title={{ doc.name }}"> {{ doc.name }} </a><span id='{{doc._id.toString()}}'></span></li>
 				</ul>
 
 
@@ -274,19 +279,36 @@
 
 		    $http.get("/getDocuments").success(function(response) { 
 
-		    	response.sort(function (a, b) {
-		    		var d1 = a.lastModified, d2 = b.lastModified;
+		    	var user = response.user;
+				
+				var docs = response.documents;
+		    	var myDocs = [], otherDocs = [], docsArr = [myDocs, otherDocs];
 
-		    		if (!d1 && !d2) return 0;
-		    		if (!d1) return 1;
-		    		if (!d2) return -1;
+		    	for (var i = 0; i < docs.length; i++) {
+		    		var doc = docs[i];
+		    		if (doc.creator == user) myDocs.push(doc);
+		    		else otherDocs.push(doc);
+		    	}
 
-		    		d1 = new Date(d1);
-		    		d2 = new Date(d2);
+		    	for (var i = 0; i < docsArr.length; i++) {
+		    		docsArr[i].sort(function (a, b) {
+			    		var d1 = a.lastModified, d2 = b.lastModified;
 
-		    		return d2.getTime() - d1.getTime();
-		    	})
-		    	$scope.documents = response;
+			    		if (!d1 && !d2) return 0;
+			    		if (!d1) return 1;
+			    		if (!d2) return -1;
+
+			    		d1 = new Date(d1);
+			    		d2 = new Date(d2);
+
+			    		return d2.getTime() - d1.getTime();
+			    	});
+		    	}
+
+
+		    	$scope.user = user;
+		    	$scope.myDocuments =  myDocs;
+		    	$scope.otherDocuments = otherDocs
 		    });
 		}]);
 
