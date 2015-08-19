@@ -409,11 +409,11 @@ module.exports = {
             var userColors = doc[3];
             if (userColors[socket.request.user]) {
               var u = socket.request.user;
-              color = '#ff0000';
+              color = '#ff00ff';
             }
             else {
               var len = Object.keys(userColors).length;
-              color = '#ff0000';
+              color = '#ff00ff';
 
               userColors[socket.request.user] = {color : len};
 
@@ -435,7 +435,12 @@ module.exports = {
           var d= {};
           d["struct"] = doc[0].documentElement.getElementsByTagName("body")[0].innerHTML;
           d["text"] = doc[1];
-          d["color"] = color;
+          
+          if (!socket.isGhost) {
+            d["color"] = color;
+            d["colorId"] = doc[3][socket.request.user].color;
+          }
+          
           d["cursor"] = doc[4];
           d["currentUsers"] = doc[2];
           d["title"] = doc[5];
@@ -551,11 +556,11 @@ module.exports = {
       var doc = documents[documentId];
 
 
-      var col = '#ff0000';//colors[ doc[3][socket.request.user]['color']%colors.length ];
+      var col = '#ff00ff';//colors[ doc[3][socket.request.user]['color']%colors.length ];
       changejs.setDocument(doc[0].parentWindow.window.document);
       //changejs.setColor(col);
 
-      var serverStart = doc[8]['start'], clientStart = changes[3];
+      var serverStart = doc[8]['start'], clientStart = changes[2];
       if (serverStart != clientStart) {
         console.log("server: " + serverStart + "; client: " + clientStart);
 
@@ -586,8 +591,10 @@ module.exports = {
       var oldText = doc[1];
       doc[1] = changejs.applyTextChanges(doc[1], changes[1]);
 
-      changejs.applyTextChangesToStructure(doc[0].parentWindow.window.document.getElementById('testArea'), oldText, changes[1], col, doc[1]);
-      changejs.form2(doc[0].parentWindow.window.document.getElementById('testArea'), col, true);
+      var colId = "u" + doc[3][socket.request.user].color;
+
+      changejs.applyTextChangesToStructure(doc[0].parentWindow.window.document.getElementById('testArea'), oldText, changes[1], col, colId, doc[1]);
+      changejs.form2(doc[0].parentWindow.window.document.getElementById('testArea'), col, colId, true);
       changejs.form(doc[0].parentWindow.window.document.getElementById('testArea'));
 
 

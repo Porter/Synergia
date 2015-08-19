@@ -157,23 +157,6 @@ function runServer(db, callback) {
     });
   });
 
-  app.get('/np', loggedIn, function(req, res){
-    console.log("req.user: " + JSON.stringify(req.user));
-
-    var collection = db.collection('g');
-
-    collection.findOne({_id:BSON.ObjectID(req.user)}, {user:1, email:1, displayName:1}, function (err, reply) {
-      if (err) console.log(err);
-      console.log("reply", reply);
-      if (reply['user'] && reply['user'].startsWith('gU:')) reply['user'] = reply['user'].substring(3);
-
-      res.end(swig.renderFile(__dirname + "/html/np.html", {
-        username: reply['user'] || reply['displayName'] || reply['email']
-      })); 
-    });
-  });
-
-
   app.get('/errors', function(req, res) {
     
     var collection = db.collection('errors');

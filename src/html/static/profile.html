@@ -219,7 +219,7 @@
 		        		</span>
 
 		        		<ul class="fontPicker" ng-model="number.font" ng-attr-id="{{ 'fontPicker-' + $index }}">
-							<li ng-repeat="font in fonts" ng-click="clicked([$index], font)" ng-style="{fontFamily:font}" value="{{font}}">{{font}}</li>
+							<li ng-repeat="font in fonts" ng-click="clicked([$parent.$index], font)" ng-style="{fontFamily:font}" value="{{font}}">{{font}}</li>
 						</ul>
 
 		        	</li>
@@ -346,6 +346,8 @@
 
 			$scope.selectedFont = '';
 			$scope.clicked = function(num, font) {
+
+				console.log("clicked " + num + " " + font);
 
 				$scope.numbers[num].font = font;
 				$('#fontPicker-' + num).toggle();

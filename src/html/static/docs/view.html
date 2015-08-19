@@ -333,13 +333,18 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 			return params;
 		}
 
+		var docId = getQueryParams()['doc'];
+
+		$('head').append('<link rel="stylesheet" href="/api/docs/css/get?doc=' + docId + '" type="text/css" />'); //deal with it
+
 		var app = angular.module('myApp', []);
 
 		app.controller('myController', ['$scope', '$http', function($scope, $http) {
 
-			var id = getQueryParams()['doc'];
-			$http.get('/api/doc/info/get?id='+id).success(function(response) {
+			
+			$http.get('/api/doc/info/get?id='+docId).success(function(response) {
 				$scope.username = response.username;
+				$scope.userId = response.userId;
 			});
 
 		}]);
@@ -539,7 +544,7 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 		
 		var oldNodes, structure, text, lastPush, lastChanges, preForm, from, oldCursor = [], userLookup, undefinedUsers = [], notifying = false;
 		var edit, edits = {}, expecting, changed, lastConfirmedStructure, lastConfirmedText, expectingResp = [];
-		var userId;
+		var userId, colorId;
 
 		var cursorPositions = {}, lastSize;
 		
@@ -555,7 +560,7 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 
 			var zeroith = $('#testArea')[0].cloneNode(true);
 
-			form2(el, color, false);
+			form2(el, color, colorId, false);
 			form(el);
 
 			if (!arrEquals(oldCursor, cursor)) {
@@ -587,9 +592,9 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 
 				console.log('------------------------------------------------');
 
-				colorize($('#testArea')[0], dChanges, color);
+				colorize($('#testArea')[0], dChanges, color, colorId);
 
-				form2(el, color);
+				form2(el, color, colorId);
 				form(el);
 
 				from = oldNodes;
@@ -613,8 +618,8 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 				preForm = getNode();
 				
 				//console.log("before", structureCopy.outerHTML);
-				applyTextChangesToStructure(structure, getText(oldNodes), changes_[1], color, getText(el));
-				form2(structure, color, true);
+				applyTextChangesToStructure(structure, getText(oldNodes), changes_[1], color, colorId, getText(el));
+				form2(structure, color, colorId, true);
 				form(structure);
 				//console.log("after", structureCopy.outerHTML);
 
@@ -828,7 +833,7 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 				$('#testArea')[0].outerHTML = msg[1];
 				setText($('#testArea')[0], msg[1], msg[2]);
 
-				form2(structure, msg[4], true);
+				form2(structure, msg[4], "u1", true);
 				form(structure);
 
 
@@ -927,9 +932,9 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 			var oldText = text_;
 			text_ = executeChanges(text_, textChanges_);
 
-			applyTextChangesToStructure(struct, oldText, textChanges_, msg[4], text_);
+			applyTextChangesToStructure(struct, oldText, textChanges_, msg[4], "u1", text_);
 
-			form2(struct, msg[4], true);
+			form2(struct, msg[4], "u1", true);
 			form(struct);
 
 			$('#testArea')[0].outerHTML = struct.outerHTML;
@@ -1048,9 +1053,9 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 
 
 				console.log('last changes', JSON.stringify(lastChanges[1]));
-				applyTextChangesToStructure(expectingResp[0], expectingResp[1], lastChanges[1], color, newText);
+				applyTextChangesToStructure(expectingResp[0], expectingResp[1], lastChanges[1], color, colorId, newText);
 				console.log('done', newText);
-				form2(expectingResp[0], msg[4], true);
+				form2(expectingResp[0], msg[4], "u1", true);
 				form(expectingResp[0]);
 
 				expectingResp[1] = newText;
@@ -1080,7 +1085,7 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 
 					var newText = executeChanges(textCopy, differences[1]);
 
-					applyTextChangesToStructure(structureCopy, textCopy, differences[1], color, newText);
+					applyTextChangesToStructure(structureCopy, textCopy, differences[1], color, colorId, newText);
 
 					$('#testArea')[0].outerHTML = structureCopy.outerHTML;
 					setText($('#testArea')[0], structureCopy, newText);
@@ -1133,7 +1138,7 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 
 					var newText = executeChanges(textCopy, differences[1]);
 
-					applyTextChangesToStructure(structureCopy, textCopy, differences[1], color, newText);
+					applyTextChangesToStructure(structureCopy, textCopy, differences[1], color, colorId, newText);
 
 					$('#testArea')[0].outerHTML = structureCopy.outerHTML;
 					setText($('#testArea')[0], structureCopy, newText);
@@ -1169,6 +1174,8 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 			msg = JSON.parse(msg);
 			console.log("initing with " + msg['text']);
 			console.log("initing with " + msg['struct']);
+
+			colorId = "u" + msg.colorId;
 
 			userLookup = msg['userLookup'];
 

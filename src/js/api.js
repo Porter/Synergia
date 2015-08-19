@@ -331,5 +331,49 @@ module.exports = {
       res.end(JSON.stringify(users));
     });
 
+
+    app.get('/api/docs/css/get', function(req, res) {
+      res.setHeader('content-type', 'text/css');
+
+      var doc = req.query.doc;
+
+      var docs = db.collection('documents');
+      var usrs = db.collection('g');
+
+      docs.findOne({_id:BSON.ObjectID(doc)}, {user:1}, function(err, docReply) {
+        if (!docReply && !docReply.user) { res.end(""); return; }
+
+        var userIds = Object.keys(docReply.user);
+        var BSONUserIds = userIds.map(function(key) { return BSON.ObjectID(key); });
+
+        usrs.find({_id:{'$in':BSONUserIds}}, {colors:1}).toArray(function(err, replies) {
+          var str = "";
+
+          for (var i = 0; i < replies.length; i++) {
+            var css = "";
+            var reply = replies[i];
+            var id = reply._id;
+
+            console.log(reply);
+
+            var className = docReply.user[id].color;
+
+            if (!reply.colors) {
+              reply.colors = [{}];
+            }
+
+            css += ".u" + className + "{font-family:" + reply.colors[0].font + "; color: " + reply.colors[0].color + ";}";
+
+            str += css + "\n";
+          }
+
+          res.end(str);
+
+        });
+
+      });
+
+    });
+
   }
 }

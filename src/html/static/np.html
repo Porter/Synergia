@@ -187,6 +187,11 @@
 			return params;
 		}
 
+
+		var docId = getQueryParams()['doc'];
+
+		$('head').append('<link rel="stylesheet" href="/api/docs/css/get?doc=' + docId + '" type="text/css" />'); //deal with it
+
 		var title = getQueryParams()['title'];
 		if (title) $('#title').html("<a href='/doc/view?doc=" + getQueryParams()['doc'] + "'>" +  title + "</a>");
 

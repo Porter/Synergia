@@ -184,7 +184,7 @@ function setAttrs(element, dict) {
         element.setAttribute(i, dict[i]);
 }
 
-function form2(node, color, isStructure, cursor) {
+function form2(node, color, className, isStructure, cursor) {
 	var children = node.childNodes;
 
 
@@ -203,7 +203,7 @@ function form2(node, color, isStructure, cursor) {
 	}
 
 	if (children.length == 0) {
-		node.appendChild(blankState(color, isStructure));
+		node.appendChild(blankState(color, className, isStructure));
 		return;
 	}
 
@@ -1057,8 +1057,6 @@ function _applyNewLineToStructure(structure, position, color, isPost) {
 	}
 	if (node) {
 
-		console.log(strip(node[0]), node[1]);
-
 		var font = node[0].parentNode;
 
 		var div = node[0].parentNode.parentNode;
@@ -1069,8 +1067,6 @@ function _applyNewLineToStructure(structure, position, color, isPost) {
 
 		var leftSide = node[1];
 		var rightSide = parseInt(node[0].textContent) - leftSide;
-
-		console.log(leftSide, rightSide);
 
 		//console.log(leftSide, rightSide);
 
@@ -1135,8 +1131,6 @@ function _removeNewLineFromStructure(structure, position) {
 	var toJoin1 = removing[0].parentNode.parentNode, toJoin2 = removing[0].parentNode.parentNode.nextSibling;
 
 
-	console.log(strip(toJoin1), strip(toJoin2));
-
 	var children1 = toJoin1.childNodes;
 	var br = toJoin1.removeChild(children1[children1.length - 1]); // remove the br at the end of every div. We'll add it to the end later
 
@@ -1160,7 +1154,7 @@ function _removeNewLineFromStructure(structure, position) {
 	toJoin2.parentNode.removeChild(toJoin2);
 }
 
-function blankState(color, isStructure) {
+function blankState(color, className, isStructure) {
 	var newDiv = document.createElement('div');
 
 	var newFont1 = document.createElement('font');
@@ -1169,6 +1163,7 @@ function blankState(color, isStructure) {
 
 	var newFont2 = document.createElement('font');
 	newFont2.color = color;
+	newFont2.className = className;
 	newFont2.appendChild(document.createElement('br'));
 
 	newDiv.appendChild(newFont1);
@@ -1177,10 +1172,12 @@ function blankState(color, isStructure) {
 	return newDiv;
 }
 
-function _applyAdditionToStructure(structure, originalText, addition, color, isPost) {
+function _applyAdditionToStructure(structure, originalText, addition, color, className, isPost) {
+
+	console.log("class", className);
 
 	if (structure.childNodes.length == 0) {
-		structure.appendChild(blankState(color, true));
+		structure.appendChild(blankState(color, className, true));
 	}
 
 	addition = addition.slice();
@@ -1221,26 +1218,9 @@ function _applyAdditionToStructure(structure, originalText, addition, color, isP
 
 			var parentNode = node.parentNode;
 
-			//console.log('adding after "' + originalText.charAt(addition[0] - 1) + '"');
 
-
-			//console.log(nodeAtStructure(addition[0], structure));
-			
-			// if (positionInNode == parseInt(node.textContent)) {
-			// 	var movedAhead = 0;	
-			// 	while (originalText.charAt(addition[0] - 1 + movedAhead) == '\n') {
-			// 		console.log("going forward from ", strip(node));
-			// 		node = nextTextNode(node) || node;
-			// 		console.log("to ", strip(node));
-			// 		movedAhead--;
-
-			// 	}
-			// }
-			// else { console.log('efasdf")', isPost, positionInNode); }
-
-
-			var parentColor = parentNode.color;
-			if (color != parentNode.color) {
+			/*var parentColor = parentNode.color;
+			if (color != parentColor) {
 
 
 				var nodeLength = parseInt(node.textContent);
@@ -1267,6 +1247,35 @@ function _applyAdditionToStructure(structure, originalText, addition, color, isP
 			else { 
 				node.textContent = "" + (parseInt(node.textContent) + addition[1].length);
 
+			}*/
+
+			var parentClass = parentNode.className;
+			if (color != parentClass) {
+
+
+				var nodeLength = parseInt(node.textContent);
+				var parentNode = node.parentNode.parentNode;
+
+				var leftSide = positionInNode;
+				var rightSide = nodeLength - leftSide;
+				var middle = addition[1].length;
+
+
+				node.textContent = "" + leftSide;
+				
+				var middleFont = document.createElement('font');
+				middleFont.className = className;
+				middleFont.textContent = "" + middle;
+
+				var rightFont = document.createElement('font');
+				rightFont.className = parentClass;
+				rightFont.textContent = "" + rightSide;
+
+				parentNode.insertBefore(rightFont, node.parentNode.nextSibling);
+				parentNode.insertBefore(middleFont, node.parentNode.nextSibling);
+			}
+			else { 
+				node.textContent = "" + (parseInt(node.textContent) + addition[1].length);
 			}
 
 			originalText = originalText.substring(0, addition[0]) + addition[1] + originalText.substring(addition[0]);
@@ -1347,10 +1356,10 @@ function _applyDeletionToStructure(structure, originalText, deletion, color, isP
 	
 }
 
-function applyTextChangesToStructure(structure, originalText, textChanges_, color, finalText) {
+function applyTextChangesToStructure(structure, originalText, textChanges_, color, colorId, finalText) {
 	var isPost = textChanges_[textChanges_.length - 1];
 
-
+	console.log("id", colorId);
 	var textOffset = 0, lastOffset = 0;
 	for (var i = 0; i < textChanges_.length - 1; i++) {
 
@@ -1358,7 +1367,7 @@ function applyTextChangesToStructure(structure, originalText, textChanges_, colo
 
 		if (textChange_.length == 2){
 			if (typeof textChange_[1] == "string") {
-				_applyAdditionToStructure(structure, originalText, textChange_, color, isPost && i == textChanges_.length - 2);
+				_applyAdditionToStructure(structure, originalText, textChange_, color, colorId, isPost && i == textChanges_.length - 2);
 
 				textOffset += textChange_[1].length;
 			}
@@ -1369,7 +1378,7 @@ function applyTextChangesToStructure(structure, originalText, textChanges_, colo
 		}
 		else {
 			_applyDeletionToStructure(structure, originalText, [textChange_[0], textChange_[2]], color);
-			_applyAdditionToStructure(structure, originalText, [textChange_[0], textChange_[1]], color);
+			_applyAdditionToStructure(structure, originalText, [textChange_[0], textChange_[1]], color, colorId);
 
 			textOffset += textChange_[1].length - textChange_[2];
 		}
@@ -1410,7 +1419,6 @@ function applyOffsets(changes1, changes2) {
 				if (change1[0] <= change2[0]) offset = range;
 			}
 
-			console.log(JSON.stringify(change1), JSON.stringify(change2));
 			change2[0] += offset;
 		}
 	}
@@ -1432,9 +1440,7 @@ function getNodeChanges(node1, node2, cursor) {
 	
 	if (sd) sd[1] = sd[1].outerHTML || sd[1].textContent;
 	
-	var toColor = nodesToColorize(node2, textChanges_);
-	
-	return [sd, textChanges_, toColor];
+	return [sd, textChanges_];
 }
 
 function setNodeChanges(node, oldStruct, changes, colr, doc) {
@@ -1903,7 +1909,7 @@ function executeNodeChanges(section1, changes) {
 	}
 }
 
-function nodesToColorize(node, changes) {
+function nodesToColorize(node, changes, className) {
 	
 	var toColor = toColorize(changes);
 	
@@ -1912,8 +1918,9 @@ function nodesToColorize(node, changes) {
 		var toC = toColor[i];
 		//console.log(node.textContent.substring(toC[0], toC[0] + toC[1]));
 
-		var ns = nodesToColorizeHelper(node, [toC[0], toC[0] + toC[1]]);
+		var ns = nodesToColorizeHelper(node, [toC[0], toC[0] + toC[1]], className);
 		for (var n = 0; n < ns.length; n++) {
+
 			nodes.push(ns[n]);
 		}
 
@@ -1922,12 +1929,11 @@ function nodesToColorize(node, changes) {
 	return nodes;
 }
 
-function nodesToColorizeHelper(node, range, len, nodesInRange, soFar) { // returns the nodes with the ranges relative to said nodes to colorize
+function nodesToColorizeHelper(node, range, className, len, nodesInRange, soFar) { // returns the nodes with the ranges relative to said nodes to colorize
 	
 	soFar = soFar || [];
 	nodesInRange = nodesInRange || [];
 	len = len || 0;
-	
 	
 	if (node.nodeName.toLowerCase() != "#text") {
 		
@@ -1937,7 +1943,7 @@ function nodesToColorizeHelper(node, range, len, nodesInRange, soFar) { // retur
 			var soFarC = soFar.slice();
 			soFarC.push(i);
 			
-			nodesToColorizeHelper(node.childNodes[i], range, len, nodesInRange, soFarC);
+			nodesToColorizeHelper(node.childNodes[i], range, className, len, nodesInRange, soFarC);
 			
 			len += node.childNodes[i].textContent.length;
 		}
@@ -1948,8 +1954,7 @@ function nodesToColorizeHelper(node, range, len, nodesInRange, soFar) { // retur
 	var theColor = color || "#0000ff";
 	
 	if ( (range[0] >= len && range[0] < len + node.textContent.length) || (range[1] > len && range[1] <= len + node.textContent.length) ) {
-		
-		if (getColor(node) != theColor) {
+		if (getColor(node) != theColor || className != node.className) {
 			var repr = [0, [max(0, range[0] - len), min(node.textContent.length, range[1] - range[0])], soFar];
 			nodesInRange.push(repr);
 		}
@@ -1957,6 +1962,7 @@ function nodesToColorizeHelper(node, range, len, nodesInRange, soFar) { // retur
 	}
 	else {
 	}
+
 	return nodesInRange;
 }
 
@@ -1997,9 +2003,9 @@ function toColorize(changes) { // returns the ranges to colorize
 	return changes;
 }
 
-function colorize(node, changes, col) {
+function colorize(node, changes, col, className) {
 	
-	var nodes = nodesToColorize(node, changes);
+	var nodes = nodesToColorize(node, changes, className);
 
 	console.log("colorizing nodes " + JSON.stringify(nodes));
 	
@@ -2024,7 +2030,7 @@ function colorize(node, changes, col) {
 
 		//console.log(node.outerHTML || node.textContent, JSON.stringify(range));
 		
-		if (getColor(node) != theColor) {
+		if (getColor(node) != theColor || node.className != className) {
 			var text = node.textContent;
 			
 			var part1 = text.substring(0, range[0]);
@@ -2037,6 +2043,7 @@ function colorize(node, changes, col) {
 			
 			var font = document.createElement("font");
 			font.color = theColor;
+			font.className = className;
 			font.appendChild( document.createTextNode(part2) );
 			parent.insertBefore(font, node);
 			
@@ -2051,7 +2058,7 @@ function colorize(node, changes, col) {
 }
 
 
-function colorizeStructure(nodesToColor, structure, Color) {
+function colorizeStructure(nodesToColor, structure, Color, className) {
 	
 	for (var i = 0; i < nodesToColor.length; i++) {
 		toColor = nodesToColor[i];
@@ -2084,6 +2091,7 @@ function colorizeStructure(nodesToColor, structure, Color) {
 		
 		var font = document.createElement("font");
 		font.color = theColor;
+		font.className = className;
 		font.appendChild( document.createTextNode("" + range[1]) );
 		parent.insertBefore(font, node);
 		
