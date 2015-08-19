@@ -1,0 +1,328 @@
+<script type="text/javascript" src="/jquery-1.11.1.js"></script>
+<script src="https://apis.google.com/js/platform.js" async defer></script>
+
+<link href="/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+<meta name="google-signin-client_id" content="705471905548-fij33vt84b6ld8nq7mh8u30hgafrpel2.apps.googleusercontent.com">
+
+
+<style>
+
+
+
+#LS_Heading{
+	  position:absolute;
+	  margin-top:10px;
+	  margin-left:25%;
+	  width: 50%;
+
+ background-color: white;
+  opacity: .8;
+  font-size: 45px;
+  font-family: "Garamond";
+  color: rgb(100,100,100);
+  text-align: center;
+ 
+ 
+word-spacing: 15px;
+	letter-spacing: 4px;
+ 
+  padding-top:10px;
+padding-bottom:0px;
+padding-left: 5px;
+padding-right: 5px;
+	
+	 z-index: 16;
+	}
+
+	
+	
+	#image{
+		margin-left: 5%;
+		width:90%;
+		height:60%;
+		margin-top:80px;
+		z-index:-1;
+	}
+	
+	#Textlogin{
+		background-color: rgb(200,200,200);
+		font-family: "Garamond";
+		text-align: center;
+		width:80px;
+		padding:0px;
+		color:rgb(120,120,120);
+		font-size:18px;
+		line-height: 20px;
+	
+	}
+
+	#Login{
+		position:absolute;
+		margin-left: 85%;
+		top:0px;
+		z-index: 8;
+	}
+
+	#Signup{
+		position:absolute;
+		margin-left:40%;
+		top:1380px;
+
+
+	}
+
+	#TextSignup{
+text-align: center;
+font-size: 20px;
+font-family: "Palatino";
+background-color: rgb(200,200,200);
+color:black;
+border-radius: 0px;
+width:200px;
+padding-top:10px;
+padding-bottom:10px;
+padding-left: 5px;
+padding-right: 5px;
+margin-left: 15px;
+
+	}
+
+	#BigText{
+	position: absolute;
+	padding-top: 10px;
+	padding-bottom: 10px;
+	padding-left: 5px;
+	padding-right: 5px;
+	top:310px;
+	width: 60%;
+	margin-left: 12%;
+	text-align: center;
+	word-spacing: 15px;
+	letter-spacing: 4px;
+	line-height: 36px;
+
+	background-color: none;
+	font-family: "Big Caslon";
+	font-size: 20px;
+	font-weight: bolder;
+	color:white;
+	opacity:0.9;
+	}
+
+
+
+	#Welcome{
+		position: absolute;
+	padding-top: 40px;
+	padding-bottom: 40px;
+	top:540px;
+	width: 70%;
+	margin-left: 15%;
+	text-align: center;
+	line-height:40px;
+
+	background-color: none;
+	font-family: "Book Antiqua";
+	font-size: 28px;
+	font-weight: bold;
+	color:rgb(50,50,50);
+	opacity:.7;
+	}
+
+#PWelcome{
+	position: absolute;
+	padding-top: 40px;
+	padding-bottom: 40px;
+	top:620px;
+	width: 60%;
+	margin-left: 20%;
+	text-align: center;
+	line-height:40px;
+
+	background-color: none;
+	font-family: "Book Antiqua";
+	font-size: 20px;
+	font-weight: bold;
+	color:rgb(60,60,60);
+	opacity:.65;
+}
+
+#TextEx{
+	position: absolute;
+	padding-top: 40px;
+	padding-bottom: 40px;
+	top:1220px;
+	width: 90%;
+	margin-left: 4%;
+	text-align: center;
+	line-height:40px;
+	word-spacing: 2px;
+	letter-spacing: .6px;
+
+	background-color: none;
+	font-family: "Book Antiqua";
+	font-size: 22px;
+	font-weight: bold;
+	color:rgb(80,80,80);
+	opacity:.6;
+	
+}
+
+
+#imgex{
+    	left:10px;
+		width:800px;
+		height:200px;
+		margin-top:620px;
+		z-index:-1;
+	
+}
+
+#Texthelp{
+	position: absolute;
+	padding-top: 40px;
+	padding-bottom: 40px;
+	top:1620px;
+	width: 60%;
+	margin-left: 20%;
+	text-align: center;
+	line-height:40px;
+
+	background-color: none;
+	font-family: "Book Antiqua";
+	font-size: 20px;
+	font-weight: bold;
+	color:rgb(60,60,60);
+	opacity:.65;
+}
+
+
+#Backcolor{
+		background-color: rgb(220,220,220);
+		position: absolute;
+		top:970px;
+		height:50%;
+		width:100%;
+		z-index: -4;
+	}
+
+#creators{
+	position: absolute;
+	font-size: 16px;
+	font-family: "Georgia";
+	width:100%;
+	text-align: center;
+	word-spacing: 10px;
+	letter-spacing: 4px;
+	padding:10px;
+	background-color: black;
+	color:white;
+	top:1900px;
+	z-index:4;
+}
+	#root {
+		cursor: pointer;
+	}
+	#submit{
+		background-color: rgb(45,45,45)
+		color:white;
+	}
+
+	input {
+		margin: 5px;
+	}
+
+</style>
+
+<body>
+
+<div id="Back_heading"></div>
+<h1 id="LS_heading">Local Synergie</h1>
+<img id="image"src="YosBackground.jpg" alt="YosBackground">
+
+<div id="Login">
+<h2 id="Textlogin"> Login </h3>
+<form action="/login" method="post">
+<input placeholder="username" type="text" name="username"><br/>
+<input placeholder="password" type="password" name="password"><br/>
+<input type="submit">
+</form>
+</div>
+
+<div id="Backcolor"></div>
+
+
+<div id="Signup">
+	
+
+		<h3 id="TextSignup"> Sign up </h3>
+		<form action="/createUser" method="post">
+		<input id="user" placeholder="username" type="text" name="username"> <br/>
+		<input id="pass" placeholder="email" type="text" name="email"> <br/>
+		<input id="mail" placeholder="password" type="password" name="password"> <br/>
+		<input type="submit">
+		</form>
+
+		<button id="button" onclick="loginG()" style="opacity: 0; z-index: 10000; cursor: pointer; outline: 0px; width: 114px; position:absolute; height: 36px;">Sign in with Google</button>
+		<iframe frameborder="0" hspace="0" marginheight="0" marginwidth="0" scrolling="no" style="  width: 114px; margin: 0px; border-style: none;  visibility: visible; height: 36px;" tabindex="0" vspace="0" width="100%" id="iframe" name="I0_1437008829441" src="https://apis.google.com/u/0/_/widget/render/signin" data-gapiattached="true" title="Sign in with Google"></iframe>
+
+</div>
+
+ <p id="BigText">WE BELIEVE that GREAT THINGS HAPPEN when people WORK TOGETHER<br>
+</span>
+
+<img id="imgex" src="imgex.jpg" style="center"></img>
+
+<p id="TextEx">
+Connect to your local community with Dynamic Real-Time conversations and Information Pages</p>
+
+<p id="Welcome">Welcome to Our Alpha/Beta site!</p>
+<p id="PWelcome">Hi my name is Isabelle. This website started with a vision for connecting people to local people and resources. We've created a platform for group communication and collaboration, and over the past year, we've been refining our ideas and practices.<br>
+</p>
+
+ <p id="Texthelp">Although we've come a long way, we'll need your help to finish this adventure. Message your friends, write blog pages, invent new ways to use this platform, and most importantly-- Comment! Tell us what you think-- what's working, what's not. Write down your awesome ideas and we'll see what we can do about it :)  </p>
+
+ <p id="creators">Website Programmed by Porter Haet and designed by Isabelle Sato</p>
+</body>
+
+<script>
+	
+	function getQueryParams() {
+		qs = document.location.search;
+		qs = qs.split('+').join(' ');
+		
+		var params = {},
+		tokens,
+		re = /[?&]?([^=]+)=([^&]*)/g;
+		
+		while (tokens = re.exec(qs)) {
+			params[decodeURIComponent(tokens[1])] = decodeURIComponent(tokens[2]);
+		}
+		
+		return params;
+	}
+
+	$(document).ready(function() {
+					  
+					  $("iframe").contents().find("#root").css('cursor', 'pointer');
+					  
+					  setInterval(function() {
+								  var i = $('#iframe')[0];
+								  var r = i.getBoundingClientRect();
+								  $('#button').css('position', 'fixed');
+								  $('#button').css('left', r.left + 'px');
+								  $('#button').css('top', r.top + 'px')
+								  }, 500);
+					  
+					  });
+					  
+  var params = getQueryParams();
+  $('#user').val(params['username']);
+  $('#email').val(params['email']);
+					  
+  function loginG() {
+	  window.location = "/auth/google/?redirect=" + encodeURIComponent(params['redirect']);
+  }
+
+</script>
