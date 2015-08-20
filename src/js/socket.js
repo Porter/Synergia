@@ -16,10 +16,8 @@ function arrContains(arr, obj) {
 function changeCursor(documentId, user, cursor, socket, callback) {
   var doc = documents[documentId];
 
-  doc[4][user] = cursor;
-
-  var data = {};
-  data[user] = cursor;
+  var data = {_id: user, cursor: cursor, classId: doc[3][user].color};
+  doc[4][user] = data;
 
   socket.broadcast.to(documentId).emit('cur', data);
 
@@ -409,11 +407,11 @@ module.exports = {
             var userColors = doc[3];
             if (userColors[socket.request.user]) {
               var u = socket.request.user;
-              color = '#ff00ff';
+              color = 'u' + userColors[u]['color'];
             }
             else {
               var len = Object.keys(userColors).length;
-              color = '#ff00ff';
+              color = 'u' + len;
 
               userColors[socket.request.user] = {color : len};
 
@@ -440,7 +438,7 @@ module.exports = {
             d["color"] = color;
             d["colorId"] = doc[3][socket.request.user].color;
           }
-          
+
           d["cursor"] = doc[4];
           d["currentUsers"] = doc[2];
           d["title"] = doc[5];
@@ -603,9 +601,7 @@ module.exports = {
       //console.log("gets us: " + documents[documentId][1]);
 
       var outerHTML = doc[0].parentWindow.window.document.getElementById('testArea').outerHTML;
-      var thing = [msg, outerHTML, doc[1], doc[8]['start'], col];
-
-      console.log(doc[1] + " is from message " + (doc[8]['start']-1));
+      var thing = [msg, outerHTML, doc[1], doc[8]['start'], col, colId ];
 
       socket.emit('resp', JSON.stringify(thing), function (msg) { confirm(socket, msg)} );
       socket.broadcast.to(socket.doc).emit('update', JSON.stringify(thing));

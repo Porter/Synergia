@@ -306,8 +306,6 @@ function form2(node, color, className, isStructure, cursor) {
 
 					var attrs = AttrsToDict(fontChild.attributes);
 
-					console.log(JSON.stringify(attrs));
-
 					if (name == "i") {
 						var style = attrs['style'] || '';
 						style = style.replace(/\n/g, '');
@@ -367,7 +365,8 @@ function form2(node, color, className, isStructure, cursor) {
 			if (fonts[n+1].childNodes[0].nodeName.toLowerCase() != "#text") continue;
 
 
-			if (equalFontAttrs(fonts[n].attributes, fonts[n+1].attributes, true)) {
+			if (equalFontAttrs(fonts[n].attributes, fonts[n+1].attributes, true) || (fonts[n].className == fonts[n+1].className && fonts[n].className)) {
+
 				if (isStructure) { fonts[n].textContent = "" + (parseInt(fonts[n].textContent) + parseInt(fonts[n+1].textContent)); }
 				else { fonts[n].textContent += fonts[n+1].textContent; }
 
@@ -668,21 +667,23 @@ function stylesAreEqual(style1, style2) {
 
 	var keys1 = Object.keys(dict1), keys2 = Object.keys(dict2);
 
-	console.log(dict1, "vs", dict2);
+	//console.log(dict1, "vs", dict2);
 	for (var i1 = 0, i2 = 0; i1 < keys1.length || i2 < keys2.length; ) {
 		var key1 = keys1[i1], key2 = keys2[i2];
 
 		if (isInArray(key1, doesntMatter)) {
 			i1++;
-			console.log('k');
+			//console.log('skipping ' + key1);
 			continue;
 		}
 
 		if (isInArray(key2, doesntMatter)) {
 			i2++;
-			console.log('k');
+			console.log('skipping ' + key2);
 			continue;
 		}
+
+		if (dict1[key1] != dict2[key2]) return false;
 
 		i1++; i2++;
 	}
@@ -700,6 +701,9 @@ function equalFontAttrs(attrs1, attrs2, ignoreID) {
 	if (!attrs1['style']) boost1++;
 	if (!attrs2['style']) boost2++;
 
+	if (!attrs1['color']) boost1++;
+	if (!attrs2['color']) boost2++;
+
 	if (ignoreID) {
 		if (!attrs1['id']) boost1++;
 		if (!attrs2['id']) boost2++;
@@ -710,7 +714,7 @@ function equalFontAttrs(attrs1, attrs2, ignoreID) {
 	for (var i = 0; i < attrs1.length; i++) {
 		var key = attrs1[i].name;
 
-		if (key == 'style') continue;
+		if (key == 'style' || key == 'color') continue;
 
 		if (attrs1[key].name == 'id' && ignoreID) continue;
 
@@ -770,6 +774,44 @@ function nodeTreesAreEqual(nodeTree1, nodeTree2) { // comparing two nodeTrees
 	
 }
 
+function elementMatchesStructure(element, nodeTree) {
+	var children1 = element.childNodes;
+	var children2 = nodeTree.children;
+
+	if (children1.length != children2.length) return false;
+
+	for (var i = 0; i < children1.length; i++) {
+		var fonts1 = children1[i];
+		var fonts2 = children2[i];
+
+		for (var n1 = 0, n2 = 0; n1 < fonts1.childNodes.length - 1 && n2 < fonts2.childNodes.length - 1; n1++, n2++) { //ignore the br at the end
+			var font1 = fonts1.childNodes[n1];
+			var font2 = fonts2.childNodes[n2];
+
+			if (font1.textContent == "0") {
+				n2--;
+				continue; //skip this one
+			}
+			if (font2.textContent == "0") {
+				n1--;
+				continue;
+			}
+
+			if (font1.textContent.length != font2.textContent) return false;
+			if (font1.className != font2.className) {
+				if (font1.className == "") {
+					font1.className = font2.className;
+					return true;
+				}
+
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
 function strippedNodeTreesAreEqual(nodeTree1, nodeTree2) {
 	var children1 = nodeTree1.children;
 	var children2 = nodeTree2.children;
@@ -794,7 +836,7 @@ function strippedNodeTreesAreEqual(nodeTree1, nodeTree2) {
 			}
 
 			if (font1.textContent != font2.textContent) return false;
-			if (font1.color != font2.color) return false;
+			if (font1.className != font2.className) return false;
 		}
 	}
 
@@ -1174,8 +1216,6 @@ function blankState(color, className, isStructure) {
 
 function _applyAdditionToStructure(structure, originalText, addition, color, className, isPost) {
 
-	console.log("class", className);
-
 	if (structure.childNodes.length == 0) {
 		structure.appendChild(blankState(color, className, true));
 	}
@@ -1359,7 +1399,6 @@ function _applyDeletionToStructure(structure, originalText, deletion, color, isP
 function applyTextChangesToStructure(structure, originalText, textChanges_, color, colorId, finalText) {
 	var isPost = textChanges_[textChanges_.length - 1];
 
-	console.log("id", colorId);
 	var textOffset = 0, lastOffset = 0;
 	for (var i = 0; i < textChanges_.length - 1; i++) {
 
@@ -1633,6 +1672,8 @@ function textChanges(val1, val2, node2, cursor) {
 	//console.log(val1);
 	//console.log(val2);
 
+	var originalVal1
+
 	var changes = [];
 
 	for (var pos1 = val1.length-1, pos2 = val2.length-1; pos1 >= 0 && pos2 >= 0; pos1--, pos2--) {
@@ -1710,12 +1751,15 @@ function textChanges(val1, val2, node2, cursor) {
 	//console.log("--------------------------------------- Compressing ---------------------------------------------------");
 	//console.log(JSON.stringify(changes));
 
+	console.log(val1, val2);
 
 	if (cursor) {
-		var textContent = getText(node2), textContentLength = textContent.length;
+		var textContentAddition = getText(node2), textContentAdditionLength = textContentAddition.length;
+		var textContentDeletion = originalVal1  , textContentDeletionLength = textContentDeletion.length;
 
 		var cursor_ = cursor.slice();
 
+		console.log("cursor", JSON.stringify( cursor));
 
 		for (var i = 0; i < cursor_.length; i++) {
 			var curs = cursor_[i].slice();
@@ -1738,21 +1782,25 @@ function textChanges(val1, val2, node2, cursor) {
 
 			if (textChange.length == 2) {
 
-				var text, len;
+				var text, len, textContent, textContentLength;
 
 				if (typeof textChange[1] == "string") {
 					text = textChange[1];
 					len = textChange[1].length;
 					offset += len;
+
+					textContent = textContentAddition;
+					textContentLength = textContentAdditionLength;
 				}
 				else {
 					len = textChange[1];
 					text = originalVal1.substring(textChange[0], textChange[0] + len);
 					console.log("deleting " + text);
 					offset -= len;
+
+					textContent = textContentDeletion;
+					textContentLength = textContentDeletionLength;
 				}
-
-
 
 				var incrs = [-len, len];
 
@@ -1762,12 +1810,15 @@ function textChanges(val1, val2, node2, cursor) {
 
 					for (var pos = textChange[0]; true; pos += incr) {
 
+						console.log(pos, " ", textContent, textContentLength);
 						if (pos < 0 || pos >= textContentLength) {
 							range.push(pos - incr);
 							break;
 						}
 
 						var str = textContent.substring(pos, pos + len);
+
+						console.log("sub of ", pos, ", ", pos+len, " " + str + " vs " + text);
 
 						if (str != text) {
 							range.push(pos - incr);
@@ -1776,9 +1827,9 @@ function textChanges(val1, val2, node2, cursor) {
 					}
 				}
 				range.push(i);
-
+				console.log("range", JSON.stringify(range));
 				if (range[0] != range[1]) {
-					var c = cursor_[0][0] - 1;
+					var c = cursor_[0][0] - len;
 					if (c >= range[0] && c <= range[1]) {
 						if (range[2] == changes.length - 2) {
 							changes[changes.length - 1] = c == textContentLength - 1 ? 1 : 0;
@@ -2028,7 +2079,7 @@ function colorize(node, changes, col, className) {
 		var node = nodes[i][0];
 		var range = nodes[i][1];
 
-		//console.log(node.outerHTML || node.textContent, JSON.stringify(range));
+		console.log(node.outerHTML || node.textContent, JSON.stringify(range));
 		
 		if (getColor(node) != theColor || node.className != className) {
 			var text = node.textContent;

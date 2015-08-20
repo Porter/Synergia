@@ -187,6 +187,21 @@
 			return params;
 		}
 
+		function getStyleRuleValue(style, selector, sheet) {
+		    var sheets = typeof sheet !== 'undefined' ? [sheet] : document.styleSheets;
+		    for (var i = 0, l = sheets.length; i < l; i++) {
+		        var sheet = sheets[i];
+		        if( !sheet.cssRules ) { continue; }
+		        for (var j = 0, k = sheet.cssRules.length; j < k; j++) {
+		            var rule = sheet.cssRules[j];
+		            if (rule.selectorText && rule.selectorText.split(',').indexOf(selector) !== -1) {
+		                return rule.style[style];
+		            }
+		        }
+		    }
+		    return null;
+		}
+
 
 		var docId = getQueryParams()['doc'];
 
@@ -480,6 +495,7 @@
 			msg = JSON.parse(msg);
 			console.log("initing with " + msg['text']);
 			console.log("initing with " + msg['struct']);
+			console.log("initing with " + JSON.stringify(msg.cursor));
 
 			userLookup = msg['userLookup'];
 
@@ -525,14 +541,10 @@
 
 			$('#title').html($('#title').html("<a href='/doc/view?doc=" + getQueryParams()['doc'] + "'>" +  msg['title'] + "</a>"));
 
-			var cursor = msg['cursor'];
-			console.log(cursor);
+			var cursors = msg['cursor'];
 
-			for (key in users) {
-				if (!cursor[key]) continue;
-				var data = {};
-		        data[key] = cursor[key];
-		        onCursorChange(data);
+			for (cursor in cursors) {
+		        onCursorChange(cursors[cursor]);
 			}
 
 			$('#testArea').scroll(function (ev) {
@@ -631,28 +643,29 @@
 		function onCursorChange(msg) {
 			if (!userLookup) return;
 
-			var key = Object.keys(msg)[0];
+			var id = msg._id;
 
-			if (key == userId) {
+			if (id == userId) {
 				// we won't show our own cursor
 				return;
 			}
 
-			var cursorColor = users[key]['color'];
+			var cursor = document.getElementById('cursor-' + id);
 
-			var cursor = document.getElementById('cursor-' + key);
-
-			console.log(cursor);
+			console.log(userLookup);
+			console.log(msg);
 
 			if (!cursor) {
-				console.log("creating");
 				cursor = $('#cursors-template-container').clone().children()[0];
-				cursor.id = "cursor-" + key;
+				cursor.id = "cursor-" + id;
 
-				cursor.childNodes[0].style.borderColor = cursorColor;
-				cursor.childNodes[1].style.backgroundColor = cursorColor;
-				cursor.childNodes[2].style.backgroundColor = cursorColor;
-				cursor.childNodes[2].innerHTML = userLookup[key]['user'] || userLookup[key]['displayName'];
+				var color = getStyleRuleValue('color', '.u' + msg.classId);
+
+				cursor.childNodes[0].style.borderColor = color;
+				cursor.childNodes[1].style.backgroundColor = color;
+				cursor.childNodes[2].style.backgroundColor = color;
+
+				cursor.childNodes[2].innerHTML = userLookup[id]['user'] || userLookup[id]['displayName'];
 
 				$(cursor).hover(
 					function() {
@@ -679,8 +692,8 @@
 			var height = 26*.9;
 
 			
-			if (msg[key]) {
-				var node = getRange(msg[key][0]);
+			if (msg.cursor) {
+				var node = getRange(msg.cursor[0]);
 				if (node) {
 					var range = document.createRange();
 					range.setStart(node[0], node[1]);
@@ -696,7 +709,7 @@
 					var left = rect.left - containerRect.left + $('#testArea')[0].scrollLeft;
 					var top  = rect.top - containerRect.top + $('#testArea')[0].scrollTop;
 
-					cursorPositions[key] = [left, top];
+					cursorPositions[id] = [left, top];
 					lastSize = [$('#testArea').width(), $('#testArea').outerHeight()];
 
 					setCursorPosition(cursor, left, top, height);

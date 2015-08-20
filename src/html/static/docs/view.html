@@ -198,7 +198,7 @@
 	
 	<body>
 
-		<div ng-app="myApp" ng-controller="myController">
+		<div id="angularApp" ng-app="myApp" ng-controller="myController">
 
 		<nav class="navbar navbar-inverse navbar-static-top">
 			<div class="container-fluid">
@@ -238,13 +238,21 @@
 						<button id="notify" onclick="notify(this)">notify</button>
 						<button id="cancel" onclick="cancelNotify(this)" style="display:none">cancel</button>
 					</center>
-					<ul id="leftBarUlActive"></ul>
+					<ul id="leftBarUlActive" ng-cloak>
+
+						<li ng-repeat="(user, info) in activeUsers" id="{{ 'sidebarUser-' + user }}">
+							<span ng-if="user != userId" class="{{info.color}}">{{ userLookup[user].user }}</span>
+						</li>
+
+					</ul>
 
 					<hr style="cursor:ns-resize" />
 
-					<ul id="leftBarUlNotActive"></ul>
-					
-					<hr style="cursor:ns-resize" />
+					<ul id="leftBarUlNotActive">
+						<li ng-repeat="(user, name) in (userLookup | findInactive: activeUsers)" id="{{ 'sidebarUser-' + user }}">
+							<span ng-if="user != userId">{{ name.user }}</span>
+						</li>
+					</ul>
 					
 					<ul id="customEmails"></ul>
 					<div id="addEmail" style="display:none">
@@ -274,12 +282,7 @@
 					<div class="kix-cursor docs-ui-unprintable" style="opacity: 1; left: 0px; top: 0px;"><div class="kix-cursor-caret" style="border-color: rgb(15, 157, 88); height: 22.4px;"></div><div class="kix-cursor-top" style="opacity: 1; background-color: rgb(15, 157, 88);"></div><div class="kix-cursor-name" style="opacity: 0; display: none; background-color: rgb(15, 157, 88);"></div><span style="display:none"></span></div>
 				</div>
 
-				<ul id="people">
-					<li> person1 </li>
-					<li> person2 </li>
-					<li> person3 </li>
-					<li> person4 </li>
-				</ul>
+
 			</div>
 			<div class="col-xs-2">
 				
@@ -333,15 +336,46 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 			return params;
 		}
 
+		function getStyleRuleValue(style, selector, sheet) {
+		    var sheets = typeof sheet !== 'undefined' ? [sheet] : document.styleSheets;
+		    for (var i = 0, l = sheets.length; i < l; i++) {
+		        var sheet = sheets[i];
+		        if( !sheet.cssRules ) { continue; }
+		        for (var j = 0, k = sheet.cssRules.length; j < k; j++) {
+		            var rule = sheet.cssRules[j];
+		            if (rule.selectorText && rule.selectorText.split(',').indexOf(selector) !== -1) {
+		                return rule.style[style];
+		            }
+		        }
+		    }
+		    return null;
+		}
+
 		var docId = getQueryParams()['doc'];
 
 		$('head').append('<link rel="stylesheet" href="/api/docs/css/get?doc=' + docId + '" type="text/css" />'); //deal with it
 
 		var app = angular.module('myApp', []);
 
+		app.filter("findInactive", function() { // register new filter
+
+		  return function(userLookup, activeUsers) { // filter arguments
+
+		    var inactiveUsers = {};
+
+		    for (var i in userLookup) {
+		    	if (!activeUsers[i]) inactiveUsers[i] = userLookup[i];
+		    }
+
+		    return inactiveUsers;
+
+		  };
+		});
+
 		app.controller('myController', ['$scope', '$http', function($scope, $http) {
 
-			
+			$scope.activeUsers = [{_id:'12213'}];
+
 			$http.get('/api/doc/info/get?id='+docId).success(function(response) {
 				$scope.username = response.username;
 				$scope.userId = response.userId;
@@ -575,6 +609,9 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 
 			if (val != oldNodes.innerHTML) {
 
+				console.log('preform ', zeroith);
+				console.log('postform', element.cloneNode(true));
+
 				changes_ = getNodeChanges(oldNodes, el, cursor);
 				console.log("text changes");
 				console.log(JSON.stringify(changes_[1]));
@@ -644,7 +681,7 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 				var newStructure = nodeTree(el, color, true, false);
 				
 
-				if (!strippedNodeTreesAreEqual(newStructure, structure)) {
+				if (!elementMatchesStructure(el, structure)) {
 					console.log(el.outerHTML);
 					console.log(nodeTree(el, color, true, false));
 					alert('fail');
@@ -701,6 +738,7 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 
 
 		function updateTimes() {
+			return;
 			var lis = $('#leftBarUlActive').children();
 			for (var i = 0; i < lis.length; i++) {
 				
@@ -812,7 +850,7 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 					console.log("from server:");
 					console.log(fromServer);
 					console.log("from us");
-					console.log(strip(expectingResp[0]));
+					console.log(expectingResp[0].cloneNode(true));
 
 					console.log("diffs");
 					var el = document.getElementById('testArea');
@@ -932,7 +970,7 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 			var oldText = text_;
 			text_ = executeChanges(text_, textChanges_);
 
-			applyTextChangesToStructure(struct, oldText, textChanges_, msg[4], "u1", text_);
+			applyTextChangesToStructure(struct, oldText, textChanges_, msg[4], msg[5], text_);
 
 			form2(struct, msg[4], "u1", true);
 			form(struct);
@@ -1152,7 +1190,6 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 				setCursor3(c);
 			}
 
-			console.log(text);
 			console.log($('#testArea')[0].textContent);
 			console.log("done updating");
 
@@ -1184,6 +1221,14 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 			text = msg['text'];
 			structure = createNodeTree(msg['struct']);
 			users = msg['currentUsers'];
+
+			var scope = angular.element($("#angularApp")).scope();
+		    scope.$apply(function(){
+		    	scope.userLookup = userLookup;
+		    	scope.userId = userId;
+		        scope.activeUsers = users;
+		    });
+
 
 			lastConfirmedStructure = structure.cloneNode(true);
 			lastConfirmedText = text;
@@ -1222,14 +1267,10 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 
 			$('#title').html(msg['title']);
 
-			var cursor = msg['cursor'];
-			console.log(cursor);
+			var cursors = msg['cursor'];
 
-			for (key in users) {
-				if (!cursor[key]) continue;
-				var data = {};
-		        data[key] = cursor[key];
-		        onCursorChange(data);
+			for (cursor in cursors) {
+		        onCursorChange(cursors[cursor]);
 			}
 
 			showUsers(users);
@@ -1319,6 +1360,13 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 
 
 			showUsers(users);
+
+			var scope = angular.element($("#angularApp")).scope();
+		    scope.$apply(function(){
+		    	scope.userLookup = userLookup;
+		    	scope.userId = userId;
+		        scope.activeUsers = users;
+		    })
 		});
 
 		socket.on('NewUserJoined', function (msg) {
@@ -1330,25 +1378,26 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 		function onCursorChange(msg) {
 			if (!userLookup) return;
 
-			var key = Object.keys(msg)[0];
+			var id = msg._id;
 
-			if (key == userId) {
+			if (id == userId) {
 				// we won't show our own cursor
 				return;
 			}
 
-			var cursorColor = users[key]['color'];
-
-			var cursor = document.getElementById('cursor-' + key);
+			var cursor = document.getElementById('cursor-' + id);
 
 			if (!cursor) {
 				cursor = $('#cursors-template-container').clone().children()[0];
-				cursor.id = "cursor-" + key;
+				cursor.id = "cursor-" + id;
 
-				cursor.childNodes[0].style.borderColor = cursorColor;
-				cursor.childNodes[1].style.backgroundColor = cursorColor;
-				cursor.childNodes[2].style.backgroundColor = cursorColor;
-				cursor.childNodes[2].innerHTML = userLookup[key]['user'] || userLookup[key]['displayName'];
+				var color = getStyleRuleValue('color', '.u' + msg.classId);
+
+				cursor.childNodes[0].style.borderColor = color;
+				cursor.childNodes[1].style.backgroundColor = color;
+				cursor.childNodes[2].style.backgroundColor = color;
+
+				cursor.childNodes[2].innerHTML = userLookup[id]['user'] || userLookup[id]['displayName'];
 
 				$(cursor).hover(
 					function() {
@@ -1375,8 +1424,8 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 			var height = 26*.9;
 
 			
-			if (msg[key]) {
-				var node = getRange(msg[key][0]);
+			if (msg.cursor) {
+				var node = getRange(msg.cursor[0]);
 				if (node) {
 					var range = document.createRange();
 					range.setStart(node[0], node[1]);
@@ -1392,7 +1441,7 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 					var left = rect.left - containerRect.left + $('#testArea')[0].scrollLeft;
 					var top  = rect.top - containerRect.top + $('#testArea')[0].scrollTop;
 
-					cursorPositions[key] = [left, top];
+					cursorPositions[id] = [left, top];
 					lastSize = [$('#testArea').width(), $('#testArea').outerHeight()];
 
 					setCursorPosition(cursor, left, top, height);
@@ -1487,6 +1536,7 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 		}
 
 		function showUsers(users) {
+			return;
 			var ulActive = $('#leftBarUlActive')[0];
 			var ulNotActive = $('#leftBarUlNotActive')[0];
 			ulActive.innerHTML = ulNotActive.innerHTML = "";

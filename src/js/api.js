@@ -255,7 +255,7 @@ module.exports = {
       });
     }
 
-    app.get('/api/doc/info/get', function(req, res) {
+    app.get('/api/doc/info/get', loggedIn, function(req, res) {
       res.setHeader('content-type', 'text/json');
 
       var id = req.query.id;
@@ -362,7 +362,7 @@ module.exports = {
               reply.colors = [{}];
             }
 
-            css += ".u" + className + "{font-family:" + reply.colors[0].font + "; color: " + reply.colors[0].color + ";}";
+            css += ".u" + className + "{font-family:" + reply.colors[0].font +  "; color: " + reply.colors[0].color + ";}";
 
             str += css + "\n";
           }
