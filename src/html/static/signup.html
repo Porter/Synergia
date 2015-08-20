@@ -1,0 +1,76 @@
+<script type="text/javascript" src="/public/js/jquery-1.11.1.js"></script>
+<script src="https://apis.google.com/js/platform.js" async defer></script>
+<script src="/public/js/angular.min.js"></script>
+
+<link href="/public/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+<meta name="google-signin-client_id" content="705471905548-fij33vt84b6ld8nq7mh8u30hgafrpel2.apps.googleusercontent.com">
+
+
+<style>
+
+
+	[ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {
+	  display: none !important;
+	}
+
+</style>
+
+<body>
+
+	<div ng-app="myApp" ng-controller="ExampleController">
+	  <form novalidate class="simple-form">
+	    Name:     <input type="text" ng-model="user.username" /><br />
+	    E-mail:   <input type="text" ng-model="user.email" /><br />
+	    Password: <input type="password" ng-model="user.password" /><br />
+	    Confirm Passord: <input type="password" ng-model="user.passwordConfirm" /><br />
+	    <input type="submit" ng-click="go(user)" value="Sign Up" />
+	  </form>
+	</div>
+
+</body>
+
+<script>
+	
+	function getQueryParams() {
+		qs = document.location.search;
+		qs = qs.split('+').join(' ');
+		
+		var params = {},
+		tokens,
+		re = /[?&]?([^=]+)=([^&]*)/g;
+		
+		while (tokens = re.exec(qs)) {
+			params[decodeURIComponent(tokens[1])] = decodeURIComponent(tokens[2]);
+		}
+		
+		return params;
+	}
+
+	var params = getQueryParams();
+
+	angular.module('myApp', [])
+    .controller('ExampleController', ['$scope', '$http', function($scope, $http) {
+      $scope.user = {
+      	email: params.email || ''
+      };
+
+      $scope.go = function(user) {
+      	console.log(user);
+      	user.token = params.token;
+      	user.redirect = params.redirect;
+        $http.post('/createUser', user).then(
+        	function (ok) {
+        		console.log('ok', ok);
+        		window.location.href = params.redirect;
+        	},
+        	function(err) {
+				console.log('err', err);
+	    	}
+	    );
+      };
+    }]);
+			  
+
+
+</script>

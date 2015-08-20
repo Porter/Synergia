@@ -1,0 +1,99 @@
+0 info it worked if it ends with ok
+1 verbose cli [ 'node', '/usr/local/bin/npm', 'install', 'measured', '--save' ]
+2 info using npm@1.4.28
+3 info using node@v0.10.33
+4 warn package.json iojs@1.0.0 No repository field.
+5 verbose cache add [ 'measured', null ]
+6 verbose cache add name=undefined spec="measured" args=["measured",null]
+7 verbose parsed url { protocol: null,
+7 verbose parsed url   slashes: null,
+7 verbose parsed url   auth: null,
+7 verbose parsed url   host: null,
+7 verbose parsed url   port: null,
+7 verbose parsed url   hostname: null,
+7 verbose parsed url   hash: null,
+7 verbose parsed url   search: null,
+7 verbose parsed url   query: null,
+7 verbose parsed url   pathname: 'measured',
+7 verbose parsed url   path: 'measured',
+7 verbose parsed url   href: 'measured' }
+8 silly lockFile 38130e34-measured measured
+9 verbose lock measured /Users/porter/.npm/38130e34-measured.lock
+10 silly lockFile 38130e34-measured measured
+11 silly lockFile 38130e34-measured measured
+12 verbose addNamed [ 'measured', '' ]
+13 verbose addNamed [ null, '*' ]
+14 silly lockFile 65affe26-measured measured@
+15 verbose lock measured@ /Users/porter/.npm/65affe26-measured.lock
+16 silly addNameRange { name: 'measured', range: '*', hasData: false }
+17 verbose request where is /measured
+18 verbose request registry https://registry.npmjs.org/
+19 verbose request id 3dba211a01ba0bc3
+20 verbose url raw /measured
+21 verbose url resolving [ 'https://registry.npmjs.org/', './measured' ]
+22 verbose url resolved https://registry.npmjs.org/measured
+23 verbose request where is https://registry.npmjs.org/measured
+24 info trying registry request attempt 1 at 11:50:43
+25 verbose etag "7UX1BRF2DO8TXGJ4PGH19C2J1"
+26 http GET https://registry.npmjs.org/measured
+27 http 200 https://registry.npmjs.org/measured
+28 silly registry.get cb [ 200,
+28 silly registry.get   { server: 'CouchDB/1.5.0 (Erlang OTP/R16B03)',
+28 silly registry.get     etag: '"3JOIPSHLJOI8EYFAW4R4SJC6H"',
+28 silly registry.get     'content-type': 'application/json',
+28 silly registry.get     'cache-control': 'max-age=60',
+28 silly registry.get     'content-length': '16726',
+28 silly registry.get     'accept-ranges': 'bytes',
+28 silly registry.get     date: 'Thu, 20 Aug 2015 18:50:43 GMT',
+28 silly registry.get     via: '1.1 varnish',
+28 silly registry.get     age: '0',
+28 silly registry.get     connection: 'keep-alive',
+28 silly registry.get     'x-served-by': 'cache-lax1428-LAX',
+28 silly registry.get     'x-cache': 'MISS',
+28 silly registry.get     'x-cache-hits': '0',
+28 silly registry.get     'x-timer': 'S1440096643.481462,VS0,VE50',
+28 silly registry.get     vary: 'Accept' } ]
+29 silly addNameRange number 2 { name: 'measured', range: '*', hasData: true }
+30 silly addNameRange versions [ 'measured',
+30 silly addNameRange   [ '0.1.1',
+30 silly addNameRange     '0.1.2',
+30 silly addNameRange     '0.1.3',
+30 silly addNameRange     '0.1.4',
+30 silly addNameRange     '0.1.5',
+30 silly addNameRange     '0.1.6',
+30 silly addNameRange     '1.0.0',
+30 silly addNameRange     '1.0.1' ] ]
+31 verbose addNamed [ 'measured', '1.0.1' ]
+32 verbose addNamed [ '1.0.1', '1.0.1' ]
+33 silly lockFile 98dea5fc-measured-1-0-1 measured@1.0.1
+34 verbose lock measured@1.0.1 /Users/porter/.npm/98dea5fc-measured-1-0-1.lock
+35 silly lockFile 95f5007c--org-measured-measured-1-0-1-tgz https://registry.npmjs.org/measured/-/measured-1.0.1.tgz
+36 verbose lock https://registry.npmjs.org/measured/-/measured-1.0.1.tgz /Users/porter/.npm/95f5007c--org-measured-measured-1-0-1-tgz.lock
+37 verbose addRemoteTarball [ 'https://registry.npmjs.org/measured/-/measured-1.0.1.tgz',
+37 verbose addRemoteTarball   '9aff52021801392808204ad527bbd587d5c1db77' ]
+38 info retry fetch attempt 1 at 11:50:43
+39 verbose fetch to= /var/folders/_t/jb0qjh290l59tt1l0smpj5j00000gn/T/npm-2526-gXq-poXj/registry.npmjs.org/measured/-/measured-1.0.1.tgz
+40 http GET https://registry.npmjs.org/measured/-/measured-1.0.1.tgz
+41 http 200 https://registry.npmjs.org/measured/-/measured-1.0.1.tgz
+42 silly lockFile 95f5007c--org-measured-measured-1-0-1-tgz https://registry.npmjs.org/measured/-/measured-1.0.1.tgz
+43 silly lockFile 95f5007c--org-measured-measured-1-0-1-tgz https://registry.npmjs.org/measured/-/measured-1.0.1.tgz
+44 silly lockFile 98dea5fc-measured-1-0-1 measured@1.0.1
+45 silly lockFile 98dea5fc-measured-1-0-1 measured@1.0.1
+46 silly lockFile 65affe26-measured measured@
+47 silly lockFile 65affe26-measured measured@
+48 error Error: EACCES, mkdir '/Users/porter/.npm/measured/1.0.1'
+48 error  { [Error: EACCES, mkdir '/Users/porter/.npm/measured/1.0.1']
+48 error   errno: 3,
+48 error   code: 'EACCES',
+48 error   path: '/Users/porter/.npm/measured/1.0.1' }
+49 error Please try running this command again as root/Administrator.
+50 error System Darwin 13.4.0
+51 error command "node" "/usr/local/bin/npm" "install" "measured" "--save"
+52 error cwd /Users/porter/dev/garbage/node/src
+53 error node -v v0.10.33
+54 error npm -v 1.4.28
+55 error path /Users/porter/.npm/measured/1.0.1
+56 error code EACCES
+57 error errno 3
+58 error stack Error: EACCES, mkdir '/Users/porter/.npm/measured/1.0.1'
+59 verbose exit [ 3, true ]

@@ -16,7 +16,7 @@ function loggedIn(req, res, next) {
 }
 
 module.exports = {
-  foo: function (app, channels, db, secure_random, async, swig, BSON, mySocket) {
+  foo: function (app, channels, db, secure_random, async, swig, BSON, mySocket, notifier) {
 
     app.get("/docs/new", function (req, res) {
 
@@ -198,10 +198,16 @@ module.exports = {
       });
     });
 
-    app.get('/api/user/info', loggedIn, function(req, res) {
+    app.get('/api/user/info', function(req, res) {
       var ppl = db.collection('g');
 
-      var user = req.query.user || req.user;
+      var user = req.user;
+
+      if (!user) {
+        res.setHeader('content-type', 'text/json');
+        res.end('{}');
+        return;
+      }
 
       ppl.findOne({_id:BSON.ObjectId(user)}, {user:1}, function(err, reply) {
         if (err) console.log(err);
@@ -281,6 +287,11 @@ module.exports = {
         ],
         function(err, results) {
           console.log(results);
+
+          if (!results[1][req.user]) {
+            res.end('');
+            return;
+          }
 
           res.end(JSON.stringify({userId: req.user, username: results[0], color: results[1][req.user].color}));
         });
@@ -373,6 +384,10 @@ module.exports = {
 
       });
 
+    });
+
+    app.post('/api/docs/invite', function(req, res) {
+      notifier.invite(req, res);
     });
 
   }

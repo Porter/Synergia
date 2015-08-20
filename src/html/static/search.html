@@ -92,8 +92,11 @@
 					clearTimeout(timeout);
 					timeout = setTimeout(function() { logic($scope.inp) }, 200);
 				}
-
 			};
+
+			$scope.inp = '';
+			$scope.jk();
+
 		});
 	}]);
 

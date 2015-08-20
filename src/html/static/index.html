@@ -74,6 +74,7 @@
 
 			#sideBarRight {
 				position: fixed;
+				overflow: scroll;
 				right: 0;
 				top: 0;
 				width: 20%;
@@ -280,6 +281,13 @@
 
 
 		    });
+
+		    $http.get('/api/user/info').success(function(reply)  {
+
+				if (!reply._id) {
+					window.location.replace("/login?redirect=" + encodeURIComponent(window.location));
+				}
+			})
 
 		    $http.get("/getDocuments").success(function(response) { 
 

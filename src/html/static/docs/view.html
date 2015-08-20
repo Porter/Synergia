@@ -39,6 +39,7 @@
 		font-size: 15px;
 		font-weight: bold;
 		text-align: center;
+		position: relative;
 	}
 
 	#leftBar > ul {
@@ -179,6 +180,19 @@
 		position: relative;
 	}
 
+	#customEmails {
+		position: absolute;
+		bottom: 10px;
+	}
+
+	#customEmails > ul {
+		padding: 0;
+	}
+
+	#customEmails > ul > li{
+		list-style-type: none;
+	}
+
 	.wrapword{
 		white-space: -moz-pre-wrap !important;  /* Mozilla, since 1999 */
 		white-space: -pre-wrap;      /* Opera 4-6 */
@@ -189,8 +203,23 @@
 		word-break: break-all;
 		white-space: normal;
 
-		}
+	}
+
+	.addEmailInput {
+	    -webkit-transition:all linear 0.5s;
+	    transition:all linear 0.5s;
+	    background: transparent;
+	  }
+	.addEmailInputInvalid {
+		-webkit-transition:all linear 0.5s;
+	    transition:all linear 0.5s;
+		color:white;
+		background: red;
+	}
 	
+	[ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {
+	  display: none !important;
+	}
 	
 	
 		</style>
@@ -221,7 +250,7 @@
 				<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
 					
 					<ul class="nav navbar-nav navbar-right" style="margin-right: 5%">
-						<li><a href="/profile?user={{userId}}">{{ username }}</a></li>
+						<li><a href="/profile?user={{userId}}" ng-cloak>{{ username }}</a></li>
 						<li><a href="/logout">Sign out</a></li>
 					</ul>
 					
@@ -231,17 +260,20 @@
 
 		<div id="status" style="position: fixed; width: 50px; height: 50px; right: 0px; top 50px; background-color:green; display:none"></div>
 		
+
 		<div class="row">
 			<div class="col-xs-4">
 				<div id="leftBar">
 					<center>
-						<button id="notify" onclick="notify(this)">notify</button>
-						<button id="cancel" onclick="cancelNotify(this)" style="display:none">cancel</button>
+						<button id="notify" ng-click="notifying = true" ng-show="!notifying">notify</button>
+						<button id="send" ng-click="notifying = false; send()" ng-show="notifying">send</button>
+						<button id="cancel" ng-click="notifying = false" ng-show="notifying">cancel</button>
 					</center>
 					<ul id="leftBarUlActive" ng-cloak>
 
-						<li ng-repeat="(user, info) in activeUsers" id="{{ 'sidebarUser-' + user }}">
-							<span ng-if="user != userId" class="{{info.color}}">{{ userLookup[user].user }}</span>
+						<li ng-repeat="(user, info) in activeUsers" id="{{ 'sidebarUser-' + user }}" ng-if="user != userId">
+							<input ng-if="notifying" type="checkbox" ng-model="$parent.toNotify[user]" >
+							<span  class="{{info.color}}">{{ userLookup[user].user }}</span>
 						</li>
 
 					</ul>
@@ -249,19 +281,33 @@
 					<hr style="cursor:ns-resize" />
 
 					<ul id="leftBarUlNotActive">
-						<li ng-repeat="(user, name) in (userLookup | findInactive: activeUsers)" id="{{ 'sidebarUser-' + user }}">
-							<span ng-if="user != userId">{{ name.user }}</span>
+						<li ng-repeat="(user, name) in (userLookup | findInactive: activeUsers)" id="{{ 'sidebarUser-' + user }}" ng-if="user != userId">
+							<input ng-if="notifying" type="checkbox" ng-model="$parent.toNotify[user]" >
+							<span >{{ name.user }}</span>
 						</li>
 					</ul>
+
+					<hr/>
 					
-					<ul id="customEmails"></ul>
-					<div id="addEmail" style="display:none">
-						<div class="row" style="margin-left:0px">
-							<div class="col-xs-8">
-								<input id="addEmailInput" type="text" placeholder="email" style="width:120%">
-							</div>
-							<div class="col-xs-4">
-								<button onclick="addCustomUser()">Add</button>
+
+					<div id="customEmails">
+						<ul>
+							<li ng-repeat="email in emails track by $index">{{emails[$index]}}</li>
+
+							<li ng-show="emails.length > 0">
+								<button ng-click="sendEmails()" class="btn btn-default">Invite</button>
+						</ul>
+						<div id="addEmail">
+							<div class="row" style="margin-left:0px">
+								<form>
+									<div class="col-xs-8">
+										<input ng-model="emailInp" id="addEmailInput" type="text" placeholder="email" style="width:120%"
+										  class="{{addEmailsForm.valid || emailIsValid() ? 'addEmailInput' : 'addEmailInputInvalid'}}">
+									</div>
+									<div class="col-xs-4">
+										<button ng-click="addToEmail()">Add</button>
+									</div>
+								</form>
 							</div>
 						</div>
 					</div>
@@ -353,8 +399,6 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 
 		var docId = getQueryParams()['doc'];
 
-		$('head').append('<link rel="stylesheet" href="/api/docs/css/get?doc=' + docId + '" type="text/css" />'); //deal with it
-
 		var app = angular.module('myApp', []);
 
 		app.filter("findInactive", function() { // register new filter
@@ -374,12 +418,72 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 
 		app.controller('myController', ['$scope', '$http', function($scope, $http) {
 
+			$scope.notifying = false;
 			$scope.activeUsers = [{_id:'12213'}];
+			$scope.toNotify = {};
+			$scope.emails = [];
+			$scope.emailInp = '';
+			$scope.addEmailsForm = {valid: true};
 
-			$http.get('/api/doc/info/get?id='+docId).success(function(response) {
-				$scope.username = response.username;
-				$scope.userId = response.userId;
-			});
+			$http.get('/api/user/info').success(function(reply)  {
+				if (!reply._id) {
+					window.location.replace("/login?redirect=?" + encodeURIComponent(window.location));
+				}
+			})
+
+			$scope.send = function() {
+				for (var i in $scope.toNotify) {
+					if ($scope.toNotify[i]) {
+						console.log(i, userLookup[i]);
+					}
+				}
+				$scope.toNotify = {};
+				$scope.notifying = false;
+			}
+
+			$scope.sendEmails = function() {
+				console.log('sending emails');
+				$scope.send();
+
+				$http.post('/api/docs/invite', {emails:$scope.emails, docId:docId})
+				.then(function (ok) {
+					
+				},
+				function(err) {
+
+				});
+
+				$scope.emails = [];
+
+			}
+
+			$scope.emailIsValid = function() {
+				var inp = $scope.emailInp;
+
+				if (inp == '') {
+					$scope.addEmailsForm.valid = true;
+					return true;
+				}
+
+				var re = /\S+@\S+\.\S+/;
+
+				return re.test(inp);
+			}
+
+			$scope.addToEmail = function() {
+				var inp = $scope.emailInp;
+
+			    var re = /\S+@\S+\.\S+/;
+
+			    if (re.test(inp)) {
+			    	$scope.emails.push(inp);
+			    	$scope.emailInp = '';
+			    	$scope.addEmailsForm.valid = true;
+			    }
+			    else {
+			    	$scope.addEmailsForm.valid = false;
+			    }
+			}
 
 		}]);
 
@@ -1203,12 +1307,24 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 		
 		socket.on('init', function(msg) {
 
+			$('head').append('<link rel="stylesheet" href="/api/docs/css/get?doc=' + docId + '" type="text/css" />'); //deal with it
+			// also, we can't load the css until we've been inited, so don't move this
+
 			if (onSocketInit) {
 				onSocketInit();
 			}
 
 			console.log(msg);
 			msg = JSON.parse(msg);
+
+			userId = msg['userId'];
+
+			if (!userId) {
+				window.location.replace("/login?redirect=?" + encodeURIComponent(window.location));
+			}
+
+
+
 			console.log("initing with " + msg['text']);
 			console.log("initing with " + msg['struct']);
 
@@ -1216,16 +1332,16 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 
 			userLookup = msg['userLookup'];
 
-			userId = msg['userId'];
-
+			
 			text = msg['text'];
 			structure = createNodeTree(msg['struct']);
 			users = msg['currentUsers'];
 
 			var scope = angular.element($("#angularApp")).scope();
 		    scope.$apply(function(){
+		    	scope.username = userLookup[userId].user;
+				scope.userId = userId;
 		    	scope.userLookup = userLookup;
-		    	scope.userId = userId;
 		        scope.activeUsers = users;
 		    });
 

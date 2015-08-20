@@ -138,7 +138,7 @@ module.exports = {
       function(req, res) {
         // Successful authentication, redirect home.
 
-        var state = req.param('state');
+        var state = req.query.state;
         if (state) {
           res.redirect(decodeURIComponent(state));
         }
@@ -170,27 +170,7 @@ module.exports = {
       };
 
 
-      notifier.sendConfirmation(userInfo['email'], userInfo);
-      res.end("You now need to confirm your email, check your inbox");
-      return;
-
-
-      
-    });
-  
-    app.get('/confirm', function(req, res) {
-      var collection = db.collection('toBeConfirmed');
-      
-
-      collection.findOne({token:req.query.token}, function(err, reply) {
-        
-        console.log("userInfo", reply);
-        var userInfo = reply.userInfo;
-
-        var collection = db.collection('toBeConfirmed');
-        collection.remove({_id:reply._id});
-
-        
+      if (req.body.token) {
         collection = db.collection('g');
         collection.findAndModify(
           {email: userInfo['email']},
@@ -210,24 +190,19 @@ module.exports = {
 
             req.logIn(result.value._id.toString(), function (err) {
                 if(!err){
-                    res.redirect('/');
+                    res.end('success');
                 }else{
                     res.end(err.toString());
                 }
             });
 
-            // passport.authenticate('local', function(err, user, info) {
-            //   req.login(user, function(err) {
-            //     if (err) { console.log(err); return (err); }
-            //     console.log("req.user: " + JSON.stringify(req.user));
-            //     return res.redirect('/');
-            //   });
-            // })(req, res);
-
           });
+      }
+      else {
+        notifier.sendConfirmation(userInfo['email'], userInfo);
+        res.end("You now need to confirm your email, check your inbox");
+      }
 
-
-      });
     });
   }
 };

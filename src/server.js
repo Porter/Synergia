@@ -54,6 +54,9 @@ jsdom.defaultDocumentFeatures = {
     FetchExternalResources: ["script"],
     ProcessExternalResources: false
 };
+
+var Measured = require('measured');
+
 var winston = require('winston');
 var colors = require('colors');
 var secure_random = require('secure-random');
@@ -126,8 +129,26 @@ function runServer(db, callback) {
       }
   }
 
+  var gauge = new Measured.Gauge(function() {
+    return process.memoryUsage().rss;
+  });
+
+  setInterval(function() {
+    //console.log(gauge.toJSON());
+    //console.log(process.memoryUsage().rss); 
+  }, 1000);
+
+  app.use('/', function (req, res, next) {
+    var time = (new Date()).getTime();
+    res.on('finish', function() {
+      //console.log('served ' + req.url + " in " + ((new Date()).getTime() - time) + "ms");
+    });
+
+    next();
+  });
+
   var notifier = require('./js/notify');
-  notifier.init(email, secure_random, db, mode == 'production');
+  notifier.init(email, secure_random, db, app, mode == 'production');
 
   var stats = require('./js/stats');
   stats.init(email, db);
@@ -137,7 +158,7 @@ function runServer(db, callback) {
   var mySocket = require('./js/socket');
   mySocket.foo(io, passportSocketIo, secretKey, sessionStore, channels, changejs, jsdom, winston, mongo, db, secure_random, async, stats, notifier);
 
-  require('./js/api').foo(app, channels, db, secure_random, async, swig, BSON, mySocket); 
+  require('./js/api').foo(app, channels, db, secure_random, async, swig, BSON, mySocket, notifier); 
   require('./js/test').foo(app, pg); 
 
 
@@ -203,6 +224,7 @@ function runServer(db, callback) {
   app.use(function(req, res, next) {
     if (req.path.indexOf('.') === -1) {
       var file = __dirname + "/html/static" + req.path + '.html';
+      console.log(file);
       fs.exists(file, function(exists) {
         if (exists) {
 
@@ -222,6 +244,14 @@ function runServer(db, callback) {
     else
       next();
   });
+
+  var requiresLoggedIn = ['/', '/docs/view'];
+
+  for (var i = 0; i < requiresLoggedIn.lengtht; i++) {
+    app.get(requiresLoggedIn[i], loggedIn);
+  }
+
+  app.get('/', loggedIn);
 
   app.use('/', express.static(__dirname + '/html/static'));
 

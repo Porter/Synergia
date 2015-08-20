@@ -283,6 +283,12 @@ module.exports = {
       var socket = msg[0];
       var documentId = msg[1];
 
+      if (!socket.request.user) {
+        socket.emit('init', '{}');
+        channelsCallback();
+        return;
+      }
+
       async.series([
 
         function(callback) {
@@ -449,6 +455,8 @@ module.exports = {
 
           if (!socket.isGhost) {
             socket.broadcast.to(documentId).emit('users', [socket.request.user, doc[2][socket.request.user]] );
+
+            saveDocument(db, documentId, documents[documentId], null);
           }
           socket.emit('init', JSON.stringify(d) );
           
