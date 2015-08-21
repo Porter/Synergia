@@ -55,7 +55,7 @@ jsdom.defaultDocumentFeatures = {
     ProcessExternalResources: false
 };
 
-var Measured = require('measured');
+//var Measured = require('measured');
 
 var winston = require('winston');
 var colors = require('colors');
@@ -129,9 +129,9 @@ function runServer(db, callback) {
       }
   }
 
-  var gauge = new Measured.Gauge(function() {
-    return process.memoryUsage().rss;
-  });
+  // var gauge = new Measured.Gauge(function() {
+  //   return process.memoryUsage().rss;
+  // });
 
   setInterval(function() {
     //console.log(gauge.toJSON());

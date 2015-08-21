@@ -171,32 +171,48 @@ module.exports = {
 
 
       if (req.body.token) {
-        collection = db.collection('g');
-        collection.findAndModify(
-          {email: userInfo['email']},
-          [],
-          {
-            '$set' : {
-              user:userInfo['username'],
-              password:bcrypt.hashSync(userInfo['password']),
-              email: userInfo['email'],
-              hasUserName: true
-            }
-          },
-          {upsert: true, 'new':true},
 
-          function(err, result) {
-            if (err) { console.log(err); res.redirect("/"); return; }
+        var tokens = db.collection('documents');
 
-            req.logIn(result.value._id.toString(), function (err) {
-                if(!err){
-                    res.end('success');
-                }else{
-                    res.end(err.toString());
+        tokens.findOne({token:req.body.token}, function (err, tokenReply) {
+
+          if (tokenReply) {
+
+
+            collection = db.collection('g');
+            collection.findAndModify(
+              {email: userInfo['email']},
+              [],
+              {
+                '$set' : {
+                  user:userInfo['username'],
+                  password:bcrypt.hashSync(userInfo['password']),
+                  email: userInfo['email'],
+                  hasUserName: true
                 }
-            });
+              },
+              {upsert: true, 'new':true},
 
-          });
+              function(err, result) {
+                if (err) { console.log(err); res.redirect("/"); return; }
+
+                req.logIn(result.value._id.toString(), function (err) {
+                    if(!err){
+                        res.end('success');
+                    }else{
+                        res.end(err.toString());
+                    }
+                });
+
+              });
+          }
+          else {
+            notifier.sendConfirmation(userInfo['email'], userInfo);
+            res.end("You now need to confirm your email, check your inbox");
+          }
+
+
+        });
       }
       else {
         notifier.sendConfirmation(userInfo['email'], userInfo);

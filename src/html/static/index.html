@@ -16,7 +16,7 @@
 	
 
 			body{
-				background-color: rgb(15,4,87);
+				background-color: #eee;
 		
 				
 			}
@@ -27,8 +27,8 @@
 			}
 
 			.stylish {
-				    color: black;
-				    background-color: white;
+				    color: white;
+				    background-color: #520052;
 				    width: 50%;
 				    margin-top: 20px;
 				    margin-bottom: 20px;
@@ -38,9 +38,30 @@
 
 			}
 
+			.active {
+				color: white;
+			}
+
+			.stylish:hover {
+				background-color: #1950A0;
+				cursor: pointer;
+			}
+
+			.stylish > a {
+				    color: white;
+			}
+
+			.active:hover {
+				color: white;
+			}
+
+			.stylish > a:hover {
+				    color: white;
+			}
+
 			#Heading {
 				width:30%;
-				background-color:rgb(77, 112, 219);
+				background-color:#3a72cc;
 				color:white;
 				font-family: "Optima";
 				font-size: 40px;
@@ -79,7 +100,8 @@
 				top: 0;
 				width: 20%;
 				height: 100%;
-				background: rgb(204, 204, 204);
+				background: lightgray;
+				border-left: solid 2px black;
 			}
 
 			#sideBarRight > ul {
@@ -108,7 +130,7 @@
 			}
 
 			.sideBarRightRow {
-				border-bottom: 1px solid #000;
+				border-bottom: 1px solid #7A7A7A;
 				margin: 0;
 			}
 
@@ -161,9 +183,13 @@
 				<br/><br/>
 
 
+				<form onsubmit="javascript:thing(); return false;">
+					<input id="name" type="text" >
+					<input type="submit" value="CREATE NEW" class="btn">
+				</form>
 
 				<ul class="list" ng-repeat="doc in myDocuments">
-				<li class="stylish"><a href="/docs/view?doc={{ doc._id.toString() }}&title={{ doc.name }}"> {{ doc.name }} </a><span id='{{doc._id.toString()}}'></span></li>
+				<li class="stylish"><a href="/docs/view?doc={{ doc._id.toString() }}&title={{ doc.name }}"> {{ doc.name }} </a><span class="active" id='{{doc._id.toString()}}'></span></li>
 				</ul>
 
 				<hr/>
@@ -172,11 +198,6 @@
 				<li class="stylish"><a href="/docs/view?doc={{ doc._id.toString() }}&title={{ doc.name }}"> {{ doc.name }} </a><span id='{{doc._id.toString()}}'></span></li>
 				</ul>
 
-
-				<form onsubmit="javascript:thing(); return false;">
-					<input id="name" type="text">
-					<input type="submit" value="CREATE NEW">
-				</form>
 
 			</center>
 		
