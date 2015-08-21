@@ -8,6 +8,7 @@
 		<script type="text/javascript" src="/public/js/change.js"></script>
 		<script type="text/javascript" src="/public/js/tinycolor.js"></script>
 		<script src="/public/js/angular.min.js"></script>
+		<script src="/public/js/fonts.js"></script>
 		
 		<link href="/public/bootstrap/css/bootstrap.min.css" rel="stylesheet">
 	</head>
@@ -229,9 +230,7 @@
 
 		<div id="angularApp" ng-app="myApp" ng-controller="myController">
 
-		<ng-include src="/navbar">
-
-		</ng-include>
+		<div ng-include src="'/navbar'"></div>
 
 		<div id="status" style="position: fixed; width: 50px; height: 50px; right: 0px; top 50px; background-color:green; display:none"></div>
 		
@@ -391,7 +390,9 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 		  };
 		});
 
-		app.controller('myController', ['$scope', '$http', function($scope, $http) {
+		var angularHttp;
+
+		app.controller('myController', ['$scope', '$http', '$interval', '$q', function($scope, $http, $interval, $q) {
 
 			$scope.notifying = false;
 			$scope.activeUsers = [{_id:'12213'}];
@@ -399,6 +400,8 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 			$scope.emails = [];
 			$scope.emailInp = '';
 			$scope.addEmailsForm = {valid: true};
+
+			angularHttp = $http;
 
 			$http.get('/api/user/info').success(function(reply)  {
 				if (!reply._id) {
@@ -1314,6 +1317,7 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 
 			var scope = angular.element($("#angularApp")).scope();
 		    scope.$apply(function(){
+		    	loadModalInfo(scope, angularHttp, userId);
 		    	scope.username = userLookup[userId].user;
 				scope.userId = userId;
 		    	scope.userLookup = userLookup;
@@ -1366,6 +1370,11 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 
 			showUsers(users);
 
+			$('#testArea').keydown(function (e) {
+			    if (e.keyCode === 9) { // tab key
+			        e.preventDefault();  // this will prevent us from tabbing out of the editor
+			    }
+			});
 			$('#testArea').scroll(function (ev) {
 				console.log('scroll');
 				for (var key in cursorPositions) {

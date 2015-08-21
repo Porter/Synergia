@@ -20,9 +20,53 @@
 			
 			<ul class="nav navbar-nav navbar-right" style="margin-right: 5%">
 				<li><a href="/profile?user={{userId}}" ng-cloak>{{ username }}</a></li>
+				<li><a data-toggle="modal" data-target="#myModal" style="height:50px;"><img style="width:35px; margin-top: -7px;" src="/public/settings-icon.svg"/></a></li>
 				<li><a href="/logout">Sign out</a></li>
 			</ul>
 			
 		</div><!-- /.navbar-collapse -->
 	</div><!-- /.container-fluid -->
 </nav>
+
+
+<!-- Modal -->
+<div id="myModal" class="modal fade" role="dialog">
+  <div class="modal-dialog">
+
+    <!-- Modal content-->
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <center><h4 class="modal-title">Your fonts</h4></center>
+      </div>
+      <div class="modal-body">
+        <ul>
+        	<li ng-repeat="number in numbers">
+
+        		<button type="button"
+        		 class="btn btn-default" 
+        		 colorpicker-position="bottom"
+        		 ng-model="number.color"
+        		 ng-style="{backgroundColor:number.color, color:number.color}"
+        		 colorpicker>
+        		 Color
+        		</button>
+
+        		<span class="choosenFont" ng-click="showFonts([$index])">
+        			{{number.font}}
+        		</span>
+
+        		<ul class="fontPicker" ng-model="number.font" ng-attr-id="{{ 'fontPicker-' + $index }}">
+					<li ng-repeat="font in fonts" ng-click="clicked([$parent.$index], font)" ng-style="{fontFamily:font}" value="{{font}}">{{font}}</li>
+				</ul>
+
+        	</li>
+        </ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-dismiss="modal">Save</button>
+      </div>
+    </div>
+
+  </div>
+</div>

@@ -4,7 +4,6 @@
 		<title>Connectivity</title>
 		<script src="/public/js/socket.io-1.2.0.js"></script>
 		<script src="/public/js/jquery-1.11.1.js"></script>
-		<script src="/public/js/markup.min.js"></script>
 		<script type="text/javascript" src="/public/bootstrap/js/bootstrap.min.js"></script>
 		<script src="/public/js/angular.min.js"></script>
 		
@@ -49,6 +48,7 @@
 
 			.stylish > a {
 				    color: white;
+				     margin: 0px; display: block; width: 100%; height: 100%;
 			}
 
 			.active:hover {
@@ -97,7 +97,7 @@
 				position: fixed;
 				overflow: scroll;
 				right: 0;
-				top: 0;
+				top: 50px;
 				width: 20%;
 				height: 100%;
 				background: lightgray;
@@ -155,9 +155,9 @@
 		
 		<div ng-app="myApp" ng-controller="myCntrl">
 
-			<center>
+			<div ng-include src="'/navbar'"></div>
 
-			
+			<center>
 				<div id="sideBarRight" >
 
 					<div class="row sideBarRightRow" style="height:100px; " ng-cloak ng-repeat="event in events()">
@@ -189,7 +189,9 @@
 				</form>
 
 				<ul class="list" ng-repeat="doc in myDocuments">
-				<li class="stylish"><a href="/docs/view?doc={{ doc._id.toString() }}&title={{ doc.name }}"> {{ doc.name }} </a><span class="active" id='{{doc._id.toString()}}'></span></li>
+				<li class="stylish">
+					<a href="/docs/view?doc={{ doc._id.toString() }}&title={{ doc.name }}"> {{ doc.name }} {{ amountOfUsers(doc) }} </a>
+				</li>
 				</ul>
 
 				<hr/>
@@ -213,32 +215,6 @@
 		var avalData, eventData, modifiedEventData;
 
 		var app = angular.module('myApp', []);
-
-		function checkCrossover() {
-			if (!avalData) { console.log("no aval data"); return; }
-			if (!modifiedEventData) { console.log("no modified event data"); return }
-
-			var changed = false;
-
-			for (doc in avalData) {
-				console.log(doc);
-				var document_ = avalData[doc];
-				for (var i = 0; i < document_.length; i++) {
-					var user = document_[i];
-					
-					console.log("...", user);
-					for (var n = 0; n < modifiedEventData.length; n++) {
-						var ev = modifiedEventData[n];
-
-						if (ev._id == user && ev.docId == doc) {
-							modifiedEventData.splice(n, 1);
-							n--;
-						}
-					}
-				}
-			}
-		}
-
 
 		function getEvents(fromServer) {
 			eventData = fromServer;
@@ -280,15 +256,34 @@
 		}
 
 		
-		app.controller('myCntrl', ['$scope', '$interval', '$http', function($scope, $interval, $http) {
+		app.controller('myCntrl', ['$scope', '$interval', '$http', '$q', function($scope, $interval, $http, $q) {
 
-		    $http.get("/f")
-		    .success(function(response) {
+			$scope.amountOfUsers = function(user) {
 
-		    	eventDate = response;
+	    		var a = user.userCount;
+	    		if (a == 0) return '';
+	    		if (a == 1) return " | 1 user";
 
+	    		return " | " + a + " users";
+	    	}
+
+	    	var events = $http.get('/f');
+	    	var info = $http.get('/api/user/info');
+
+	    	$q.all([events, info]).then(function(results) {
+
+	    		results = results.map(function(r) { return r.data; });
+
+	    		var info = results[1];
+	    		if (!info._id) {
+					window.location.replace("/login?redirect=" + encodeURIComponent(window.location));
+				}
+				$scope.username = info.user;
+				$scope.userId = info._id; 
+
+				eventDate = results[0];
 		    	
-		    	var resps = getEvents(response);
+		    	var resps = getEvents(results[0]);
 				resps.sort(function(a, b) { return b.date.getTime() - a.date.getTime(); });
 
 
@@ -299,16 +294,7 @@
 		    	console.log("checking");
 		    	check($scope);
 		    	$interval(check, 5000, 0, true, $scope);
-
-
-		    });
-
-		    $http.get('/api/user/info').success(function(reply)  {
-
-				if (!reply._id) {
-					window.location.replace("/login?redirect=" + encodeURIComponent(window.location));
-				}
-			})
+	    	});
 
 		    $http.get("/getDocuments").success(function(response) { 
 
@@ -319,6 +305,7 @@
 
 		    	for (var i = 0; i < docs.length; i++) {
 		    		var doc = docs[i];
+		    		doc.userCount = 0;
 		    		if (doc.creator == user) myDocs.push(doc);
 		    		else otherDocs.push(doc);
 		    	}
@@ -341,7 +328,8 @@
 
 		    	$scope.user = user;
 		    	$scope.myDocuments =  myDocs;
-		    	$scope.otherDocuments = otherDocs
+		    	$scope.otherDocuments = otherDocs;
+
 		    });
 		}]);
 
@@ -351,18 +339,25 @@
 			$.getJSON('/aval', function(resp){ 
 				console.log("got it");
 				avalData = resp;
-				var lis = $('li');
-				for (var i = 0; i < lis.length; i++) {
-					lis[i].childNodes[1].innerHTML = "";
-				}
 
+
+				console.log(scope.myDocuments);
 				for (var key in resp) {
 					var amount = resp[key].length;
-					$('#' + key)[0].innerHTML = " | " + amount + " " + (amount == 1 ? "user" : "users");
+					
+					for (var i = 0; i < scope.myDocuments.length; i++) {
+						var doc = scope.myDocuments[i];
+						if (doc._id == key) {
+							doc.userCount = amount;
+						}
+					}
+					for (var i = 0; i < scope.otherDocuments.length; i++) {
+						var doc = scope.otherDocuments[i];
+						if (doc._id == key) {
+							doc.userCount = amount;
+						}
+					}
 				}
-				console.log("checking checkCrossover")
-				checkCrossover();
-				console.log(modifiedEventData);
 				scope.$apply();
 			});
 		}
