@@ -9,10 +9,8 @@
 		<script type="text/javascript" src="/public/js/tinycolor.js"></script>
 		<script src="/public/js/angular.min.js"></script>
 		<script src="/public/js/fonts.js"></script>
-		<script src="/public/js/bootstrap-colorpicker-module.min.js"></script>
 
 		<link href="/public/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-		<link href="/public/css/colorpicker.min.css" rel="stylesheet">
 	</head>
 	
 
@@ -84,8 +82,12 @@
 		border-radius:20px;
 		margin-top:2vh;
 		overflow: scroll;
+		text-align: left;
 	}
 	
+	#angularApp {
+		width: 8.5in;
+	}
 	
 	
 	#people li{
@@ -134,15 +136,6 @@
 		height: 30vh;
 		width: 100%;
 		z-index: -1;
-	}
-	
-	#status{
-		text-align: right;
-		padding-right: 4em;
-		padding-top: 15px;
-		font-size: 18px;
-		font-family: Tahoma;
-		color: rgb(25, 89, 25);
 	}
 
 	.kix-cursor {
@@ -247,69 +240,11 @@
 
 	
 	<body>
+		<center>
 
-		<div id="angularApp" ng-app="myApp" ng-controller="myController">
+			<div id="angularApp" ng-app="myApp" ng-controller="myController">
 
-		<div ng-include src="'/navbar'" onload="loadModal()"></div>
-
-		<div id="status" style="position: fixed; width: 50px; height: 50px; right: 0px; top 50px; background-color:green; display:none"></div>
-		
-
-		<div class="row">
-			<div class="col-xs-4">
-				<div id="leftBar">
-					<center>
-						<button id="notify" ng-click="notifying = true" ng-show="!notifying">notify</button>
-						<button id="send" ng-click="notifying = false; send()" ng-show="notifying">send</button>
-						<button id="cancel" ng-click="notifying = false" ng-show="notifying">cancel</button>
-					</center>
-					<ul id="leftBarUlActive" ng-cloak>
-
-						<li ng-repeat="(user, info) in activeUsers" id="{{ 'sidebarUser-' + user }}" ng-if="user != userId">
-							<input ng-if="notifying" type="checkbox" ng-model="$parent.toNotify[user]" >
-							<span  class="{{info.color}}">{{ userLookup[user].user }}</span>
-						</li>
-
-					</ul>
-
-					<hr style="cursor:ns-resize" />
-
-					<ul id="leftBarUlNotActive">
-						<li ng-repeat="(user, name) in (userLookup | findInactive: activeUsers)" id="{{ 'sidebarUser-' + user }}" ng-if="user != userId">
-							<input ng-if="notifying" type="checkbox" ng-model="$parent.toNotify[user]" >
-							<span >{{ name.user }}</span>
-						</li>
-					</ul>
-
-					<hr/>
-					
-
-					<div id="customEmails">
-						<ul>
-							<li ng-repeat="email in emails track by $index">{{emails[$index]}}</li>
-
-							<li ng-show="emails.length > 0">
-								<button ng-click="sendEmails()" class="btn btn-default">Invite</button>
-						</ul>
-						<div id="addEmail">
-							<div class="row" style="margin-left:0px">
-								<form>
-									<div class="col-xs-8">
-										<input ng-model="emailInp" id="addEmailInput" type="text" placeholder="email" style="width:120%"
-										  class="{{addEmailsForm.valid || emailIsValid() ? 'addEmailInput' : 'addEmailInputInvalid'}}">
-									</div>
-									<div class="col-xs-4">
-										<button ng-click="addToEmail()">Add</button>
-									</div>
-								</form>
-							</div>
-						</div>
-					</div>
-
-				</div>
-			</div>
-			<div class="col-xs-6">
-				<center><div class="title" id="title"></div></center>
+				<div class="title" id="title"></div>
 				<div id="main">
 					<div id="mainArea">
 						<div id="testArea" class="main" tabindex=-1 contenteditable=true></div>
@@ -321,28 +256,9 @@
 				<div id="cursors-template-container" style="display: none">
 					<div class="kix-cursor docs-ui-unprintable" style="opacity: 1; left: 0px; top: 0px;"><div class="kix-cursor-caret" style="border-color: rgb(15, 157, 88); height: 22.4px;"></div><div class="kix-cursor-top" style="opacity: 1; background-color: rgb(15, 157, 88);"></div><div class="kix-cursor-name" style="opacity: 0; display: none; background-color: rgb(15, 157, 88);"></div><span style="display:none"></span></div>
 				</div>
-
-
 			</div>
-			<div class="col-xs-2">
-				
-			</div>
-		</div>
-		
-		
-		<div id="middleBar" style="display:none">
-			<div id="status"></div>
-			<div></div>
-			<div></div>
-			<div></div>
-			
-		</div>
-		<div id="middleBarBack" >
-			
-		</div>
-		
-		
-		</div>
+
+		</center>
 		
 	</body>
 
@@ -393,7 +309,7 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 
 		var docId = getQueryParams()['doc'];
 
-		var app = angular.module('myApp', ['colorpicker.module']);
+		var app = angular.module('myApp', []);
 
 		app.filter("findInactive", function() { // register new filter
 
@@ -485,8 +401,6 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 
 		}]);
 
-		function e() { $('#status').css('display', ''); }
-
 		window.onerror = function(msg, url, line, col, error) {
 			var extra = !col ? '' : '\ncolumn: ' + col;
 		   extra += !error ? '' : '\nerror: ' + error;
@@ -505,8 +419,6 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 		   $.post("/reportError", {error:toSend}, function (resp) {
 
 		   });
-
-		   $('#status').css('background-color', 'red');
 
 		   var suppressErrorAlert = true;
 		   // If you return true, then error alerts (like in older versions of 
@@ -788,7 +700,7 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 					console.log(nodeTree(el, color, true, false));
 					alert('fail');
 					console.log('problem. testArea is:');
-					console.log(el.cloneNode(true));
+					console.log(newStructure);
 					console.log("structure");
 					console.log(structure);
 				}
@@ -808,8 +720,6 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 
 				expectingResp = [c, text];
 
-
-				$('#status')[0].style.backgroundColor = "red";
 			}
 			else {
 
@@ -1004,8 +914,6 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 				console.log("expecting: " + JSON.stringify(expecting));
 				console.log("got a resp with " + msg[3]);
 			}
-
-			$('#status')[0].style.backgroundColor = "green";
 
 			//console.log('resp ' + edit + " vs " + msg[3]);
 
@@ -1337,7 +1245,6 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 
 			var scope = angular.element($("#angularApp")).scope();
 		    scope.$apply(function(){
-		    	loadModalInfo(scope, angularHttp, userId);
 		    	scope.username = userLookup[userId].user;
 				scope.userId = userId;
 		    	scope.userLookup = userLookup;

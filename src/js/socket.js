@@ -45,24 +45,25 @@ module.exports = {
       });
     }
 
+    function updateUser(status, documentId, documentName, user) {
+      var usrs = db.collection('g');
 
-    function createDocument(db, name, user, callback) {
-      var documentsCollection = db.collection('documents');
-      documentsCollection.insert(
-        {
-          struct: '<div id="testArea" class="main" tabindex="-1" contenteditable="true"></div>', 
-          val: "",
-          creator: user,
-          name: name,
-          user: {},
-          createdOn: new Date()
-        },
+      var str = 'lastVisited.' + documentId;
+      var toSet = {};
+      toSet[str] = {
+        date: new Date(), 
+        name: documentName, 
+        id:documentId, 
+        status: status
+      };
+
+      usrs.update(
+        {_id: BSON.ObjectID(user) },
+        {'$set':toSet},
+        {upsert:true},
         function(err, reply) {
-          if (err) stats.error(err, "creating document")
-          console.log('created document');
-          console.log(reply);
-          callback(err, reply);
-      });
+          if (err) throw err;
+        });
     }
 
 
@@ -105,25 +106,26 @@ module.exports = {
 
         if (socket.doc) {
           if (documents[socket.doc]) {
-            var users = documents[socket.doc][2];
+            var doc = documents[socket.doc];
+
+            var users = doc[2];
 
             var user = users[socket.request.user];
+
             if (user['x'] <= 1) {
               delete users[socket.request.user];
 
-              var usrs = db.collection('g');
-
-              var str = 'lastVisited.' + socket.doc;
-              var toSet = {};
-              toSet[str] = {date: new Date(), name: documents[socket.doc][5], id:socket.doc, edited: socket.docEdited == true}; // == true to prevent undefined being stored
-
-              usrs.update(
-                {_id: BSON.ObjectID(socket.request.user) },
-                {'$set':toSet},
-                {upsert:true},
-                function(err, reply) {
-                  if (err) throw err;
-                });
+              if (socket.docEdited) {
+                updateUser("edited", socket.doc, doc[5], socket.request.user);
+              }
+              else {
+                if (socket.isNewDocument) {
+                  updateUser("created", socket.doc, doc[5], socket.request.user);
+                }
+                else {
+                  updateUser("viewed", socket.doc, doc[5], socket.request.user);
+                }
+              }
             }
             else {
               user['x']--;
@@ -192,29 +194,6 @@ module.exports = {
         );
       });
 
-
-      
-
-      socket.on('createDocument', function(msg, fn) {
-
-
-        if (typeof msg != "string" || msg == "") {
-          fn(-1);
-          return;
-        }
-        createDocument(db, msg, socket.request.user, function(err, reply) { 
-          if (err) {
-            stats.error(err, "creating document", msg);
-            fn(-1);
-          }
-          else {
-            fn(reply.ops[0]._id.toString());
-          }
-
-        });
-        
-
-      });
 
       socket.on('init', function(msg){
         socket.join(msg);
@@ -316,9 +295,12 @@ module.exports = {
                 var id = doc._id;
                 var userColors = doc.user;
 
+
                 var edits = {edits:[], start:0};
 
                 var keys = Object.keys(userColors);
+                socket.isNewDocument = keys.length == 0;
+
                 keys = keys.map(function (key) { return new BSON.ObjectID(key); });
 
                 keys.push(new BSON.ObjectID(socket.request.user));
@@ -555,9 +537,11 @@ module.exports = {
         return;
       }
 
-      socket.docEdited = true;
-
       var changes = JSON.parse(msg);
+
+      if (changes[1].length != 1) {
+        socket.docEdited = true;
+      }
 
       var doc = documents[documentId];
 

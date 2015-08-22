@@ -797,8 +797,32 @@ function elementMatchesStructure(element, nodeTree) {
 				continue;
 			}
 
-			if (font1.textContent.length != font2.textContent) return false;
+			if (font1.textContent.length != font2.textContent) {
+				if (font1.className != font2.className) return false;
+				if (font1.className == '' || !font1.className) return false;
+
+				console.log(font1.cloneNode(true), font2.cloneNode(true));
+
+				next = font1.nextSibling;
+
+				console.log(next);
+				while (next && next.className == "" && next.childNodes.length == 1 && next.childNodes[0].nodeName.toLowerCase() == "#text") {
+
+					var next2 = next.nextSibling;
+
+					font1.textContent += next.textContent;
+
+					next.parentNode.removeChild(next);
+
+					next = next2;
+					console.log(next);
+				}
+
+				if (font1.textContent.length != font2.textContent) return false;
+				
+			}
 			if (font1.className != font2.className) {
+				console.log("'" + font1.className + "' vs " + "'" + font2.className + "'");
 				if (font1.className == "") {
 					font1.className = font2.className;
 					return true;
@@ -1818,7 +1842,7 @@ function textChanges(val1, val2, node2, cursor) {
 
 						var str = textContent.substring(pos, pos + len);
 
-						console.log("sub of ", pos, ", ", pos+len, " " + str + " vs " + text);
+						//console.log("sub of ", pos, ", ", pos+len, " " + str + " vs " + text);
 
 						if (str != text) {
 							range.push(pos - incr);
@@ -2062,16 +2086,18 @@ function colorize(node, changes, col, className) {
 	
 	var theColor = col || color || "black";
 
+
 	for (var i = 0; i < nodes.length; i++) {
 		toColor = nodes[i];
 		
 		var location = toColor[2];
 		
+		var nodeCopy = node;
 		for (var n = 0; n < location.length; n++) {
-			node = node.childNodes[location[n]];
+			nodeCopy = nodeCopy.childNodes[location[n]];
 		}
 		
-		toColor[0] = node;
+		toColor[0] = nodeCopy;
 	}
 	
 

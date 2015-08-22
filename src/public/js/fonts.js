@@ -18,15 +18,7 @@ function loadModalInfo($scope, $http, user) {
 		console.log($('#fontPicker-' + num)[0]);
 	}
 
-    $http.get("/getUsersDocuments?user="+user).success(function(reply) {
-    	$scope.tabs = reply.map(function(r) { r.iframe = "/np?doc=" + r._id; return r; });
-    });
-    $http.get("/api/user/info?user="+user).success(function(reply) {
-    	$scope.user = reply.user;
-    });
-    $http.get("/api/friends/get?user="+user).success(function(reply){
-    	$scope.friends = reply;
-    });
+
     $http.get("/api/user/colors/get?user="+user).success(function(reply){
     	$scope.numbers = reply.map(function(r) {
     		r.font = r.font || "Select A Font";
@@ -35,18 +27,23 @@ function loadModalInfo($scope, $http, user) {
     });
 
     
+    $scope.loadModal = function() {
+    	console.log("modal", $('#myModal')[0]);
+	    $('#myModal').on('hidden.bs.modal', function () {
+		    console.log("hidden");
+		    console.log($scope.numbers);
 
-    $('#myModal').on('hidden.bs.modal', function () {
-	    console.log("hidden");
-	    console.log($scope.numbers);
+		    $http.post('/api/user/colors/update', {colors:$scope.numbers})
+		    .then(
+		    	function(response) {
 
-	    $http.post('/api/user/colors/update', {colors:$scope.numbers})
-	    .then(
-	    	function(response) {
+		    	},
+		    	function (err) {
 
-	    	},
-	    	function (err) {
+		    	}
+		    );
+		});
+	}
 
-	    	});
-	});
+	$scope.loadModal();
 }

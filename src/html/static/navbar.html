@@ -1,4 +1,4 @@
-<nav class="navbar navbar-inverse navbar-static-top">
+<nav class="navbar navbar-inverse navbar-static-top {{isIndex ? 'navbar-fixed-top' : ''}}">
 	<div class="container-fluid">
 		<!-- Brand and toggle get grouped for better mobile display -->
 		<div class="navbar-header">
@@ -20,7 +20,7 @@
 			
 			<ul class="nav navbar-nav navbar-right" style="margin-right: 5%">
 				<li><a href="/profile?user={{userId}}" ng-cloak>{{ username }}</a></li>
-				<li><a data-toggle="modal" data-target="#myModal" style="height:50px;"><img style="width:35px; margin-top: -7px;" src="/public/settings-icon.svg"/></a></li>
+				<li><a data-toggle="modal" data-target="#myModal" style="height:50px;"><img style="width:35px; margin-top: -7px; cursor: pointer;" src="/public/settings-icon.svg"/></a></li>
 				<li><a href="/logout">Sign out</a></li>
 			</ul>
 			

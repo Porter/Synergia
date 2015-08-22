@@ -44,6 +44,43 @@ module.exports = {
     });
 
 
+
+    app.get('/createDocument', loggedIn, function(req, res) {
+
+      var name = req.query.name;
+      var personal = req.query.personal == "true";
+      console.log(personal, req.query.personal);
+
+      if (name == undefined || name == '') {
+        res.end("-1");
+        return;
+      }
+
+      var documentsCollection = db.collection('documents');
+      documentsCollection.insert(
+        {
+          struct: '<div id="testArea" class="main" tabindex="-1" contenteditable="true"></div>', 
+          val: "",
+          creator: req.user,
+          name: name,
+          personal: personal,
+          user: {},
+          createdOn: new Date(),
+          lastModified: new Date()
+        },
+        function(err, reply) {
+          if (err) stats.error(err, "creating document")
+          console.log('created document');
+          console.log(reply);
+          res.end(reply.ops[0]._id.toString())
+      });
+
+    });
+
+
+
+
+
     app.get("/profilef", function(req, res) {
 
       var user = req.query.user || req.user;
@@ -90,7 +127,7 @@ module.exports = {
                 function(err, reply) {
                   if (err) throw err;
 
-                  console.log("write success");
+                  ("write success");
               });
           });
 
@@ -117,7 +154,6 @@ module.exports = {
 
     app.get('/getDocuments', loggedIn, function(req, res){
 
-      console.log(req.user);
       var g = db.collection('g');
       var friends = g.findOne({_id:BSON.ObjectID(req.user)}, {friends:1}, function(err, usr) {
 
@@ -127,11 +163,9 @@ module.exports = {
         friends = Object.keys(friends);
         friends.push(req.user);
 
-        
-        console.log(friends);
 
         var collection = db.collection('documents');
-        collection.find({creator:{'$in':friends}}, {name:1, creator:1}).toArray(function(err, docs) {
+        collection.find({creator:{'$in':friends}, personal: false}, {name:1, creator:1, lastModified:1}).toArray(function(err, docs) {
           if (err) throw err;
 
           // var keys = Object.keys(docs);
@@ -221,7 +255,7 @@ module.exports = {
     });
 
 
-    app.get('/getUsersDocuments', loggedIn, function(req, res){
+    app.get('/getUsersDocuments', function(req, res){
 
       var collection = db.collection('documents');
 
@@ -230,7 +264,14 @@ module.exports = {
         res.end('[]');
       }
 
-      collection.find({creator:user}, {_id:1, name:1}).toArray(function(err, docs) {
+      var query = {creator:user};
+      var personal = req.query.personal;
+
+      console.log('personal', personal);
+
+      if (personal) query.personal = true;
+
+      collection.find(query, {_id:1, name:1}).toArray(function(err, docs) {
         if (err) throw err;
 
         res.setHeader('content-type', 'text/json');
@@ -286,7 +327,6 @@ module.exports = {
 
         ],
         function(err, results) {
-          console.log(results);
 
           if (!results[1][req.user]) {
             res.end('');
@@ -364,8 +404,6 @@ module.exports = {
             var css = "";
             var reply = replies[i];
             var id = reply._id;
-
-            console.log(reply);
 
             var className = docReply.user[id].color;
 
