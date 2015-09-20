@@ -2,7 +2,7 @@ function loadModalInfo($scope, $http, user) {
 	
 	var user = user || getQueryParams().user;
 
-	$scope.fonts = ["arial", "Palatino Linotype", "Book Antiqua"];
+	$scope.fonts = ["Courier New", "Optima", "Book Antiqua", "Rockwell Extra Bold"];
 
 	$scope.selectedFont = '';
 	$scope.clicked = function(num, font) {

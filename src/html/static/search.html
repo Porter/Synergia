@@ -9,22 +9,30 @@
 
 <style>
 
+.friendsList{
+	position: absolute;
+	left:40%;
+	font-size: 15px;
+	font-family: "Palatio";
+}
+
 	.befriended {
 		color: green;
 	}
 
+
 </style>
 
 
-<body style="background-color: lightgrey;">
+<body style="background-color: #fff;">
 
 	<div ng-app="myApp" ng-controller="myController">
 
-		<input ng-model="inp" ng-change="jk()" type="text">
+		<input ng-model="inp" ng-change="jk()" type="text" placeholder="Search User"style="width:200px; height: 40px; position:absolute; font-family: optima; font-size: 18; text-align:center; border-radius:5px; border: 2px solid #3a72cc; top:5vh; left:43%;"> 
 
 
 		<br/><br/>
-		<span ng-repeat="d in data">
+		<span class="friendsList" ng-repeat="d in data">
 			<a href='/befriend?user={{d._id}}' class="{{ (friends.indexOf(d._id) > -1) ? 'befriended' : '' }}">{{d.user}}</a>
 			<br/>
 		</span>
