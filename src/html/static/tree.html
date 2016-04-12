@@ -1,0 +1,18 @@
+<div>
+
+
+    <span ng-if="key">
+    	{{key}}
+    	<ul>
+	        <li ng-repeat="(key, val) in val" ng-include="'/tree'"></li>
+	    </ul>
+    </span>
+
+    <span ng-if="!key">
+    	<ul>
+	        <li ng-repeat="(key, val) in tagsData" ng-include="'/tree'"></li>
+	    </ul>
+    </span>
+
+    
+</div>

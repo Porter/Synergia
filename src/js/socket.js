@@ -36,13 +36,17 @@ module.exports = {
     function saveDocument(db, id, doc, callback) {
       var documentsCollection = db.collection('documents');
 
-      documentsCollection.update( { _id : new BSON.ObjectID(id)}, { '$set': {
-        struct: doc[0].documentElement.getElementsByTagName("body")[0].innerHTML,
-        val: doc[1], 
-        user: doc[3],
-        lastModified: new Date()
-        }
-      });
+      documentsCollection.update( 
+        { _id : new BSON.ObjectID(id)},
+         { '$set': {
+          struct: doc[0].documentElement.getElementsByTagName("body")[0].innerHTML,
+          val: doc[1], 
+          user: doc[3],
+          lastModified: new Date()
+          }
+        },
+        callback
+        );
     }
 
     function updateUser(status, documentId, documentName, user) {
@@ -99,7 +103,6 @@ module.exports = {
 
 
       socket.on('disconnect', function(){
-        connected--;
         if (socket.isGhost) return;
 
         console.log(socket.request.user  + ' disconnected');
@@ -126,12 +129,19 @@ module.exports = {
                   updateUser("viewed", socket.doc, doc[5], socket.request.user);
                 }
               }
+
+
             }
             else {
               user['x']--;
             }
 
-            socket.broadcast.to(socket.doc).emit("users", [socket.request.user, users[socket.request.user]] );
+            if (Object.keys(users).length == 0) {
+              saveDocument(db, socket.doc, doc);
+            }
+            else {
+              socket.broadcast.to(socket.doc).emit("users", [socket.request.user, users[socket.request.user]] );
+            }
           }
         }
 

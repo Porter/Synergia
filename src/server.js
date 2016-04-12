@@ -224,7 +224,6 @@ function runServer(db, callback) {
   app.use(function(req, res, next) {
     if (req.path.indexOf('.') === -1) {
       var file = __dirname + "/html/static" + req.path + '.html';
-      console.log(file);
       fs.exists(file, function(exists) {
         if (exists) {
 

@@ -254,6 +254,12 @@
 
 		<div id="status" style="position: fixed; width: 50px; height: 50px; right: 0px; top 50px; background-color:green; display:none"></div>
 		
+		<div style="position:fixed; background-color: white; width:30%; color: black;">
+			<div ng-include src="'/tree'"></div>
+
+			<ul><li np-repeat="(key, val) in 'hi'">{{key}} and {{vall}}</li></ul>
+		</div>
+
 
 		<div class="row">
 			<div class="col-xs-4">
@@ -414,6 +420,9 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 
 		app.controller('myController', ['$scope', '$http', '$interval', '$q', function($scope, $http, $interval, $q) {
 
+			$scope.isString = angular.isString;
+
+
 			$scope.notifying = false;
 			$scope.activeUsers = [{_id:'12213'}];
 			$scope.toNotify = {};
@@ -427,7 +436,50 @@ focusout:!0,pagehide:!0};if(a=a||window.event)a.hidden=a.type in b?b[a.type]:doc
 				if (!reply._id) {
 					window.location.replace("/login?redirect=?" + encodeURIComponent(window.location));
 				}
-			})
+			});
+
+			$http.get('/api/tags/get?name=hi').then(
+				function(response) {
+					response = response.data;
+					var tags = response.map(function(r) { r.name = r.name.split('|'); return r; } );
+
+					tags.sort(function(a, b) {
+						return a.name.length - b.name.length;
+					});
+
+					var struct = {};
+					for (var i = 0; i < tags.length; i++) {
+						var tag = tags[i];
+
+						var structCpy = struct;
+
+						var names = tag.name;
+						for (var n = 0; n < names.length - 1; n++) {
+							var t = structCpy[names[n]];
+							
+							if (!t) {
+								structCpy[names[n]] = {};
+								t = structCpy[names[n]];
+							}
+
+							structCpy = t;
+
+
+						}
+
+						console.log(names);
+						structCpy[names[names.length-1]] = {_id: tag._id};
+
+
+						console.log(struct);
+					}
+
+					$scope.tagsData = struct;
+				},
+				function(err) {
+
+				}
+			);
 
 			$scope.send = function() {
 				for (var i in $scope.toNotify) {

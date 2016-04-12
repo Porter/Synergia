@@ -1,3 +1,5 @@
+var db, async;
+
 
 var formidable = require('formidable'),
     util = require('util'),
@@ -15,8 +17,16 @@ function loggedIn(req, res, next) {
     }
 }
 
+
+
 module.exports = {
-  foo: function (app, channels, db, secure_random, async, swig, BSON, mySocket, notifier) {
+  foo: function (app, channels, DB, secure_random, async_, swig, BSON, mySocket, notifier) {
+
+    db = DB;
+    async = async_;
+
+    var tags = require('./tags');
+    tags.init(db, async);
 
     app.get("/docs/new", function (req, res) {
 
@@ -43,7 +53,26 @@ module.exports = {
       }
     });
 
+    app.get('/api/tags/create', function(req, res) {
+      var name = req.query.name, parentName = req.query.parentName, isRoot = req.query.isRoot;
+      tags.createTag(name, parentName, isRoot, function(err, reply) {
+        res.end(err ? err.message : JSON.stringify(reply));
+      });
+    });
 
+    app.get('/api/tags/get', function(req, res) {
+      var name = req.query.name;
+      tags.getTag(name, function(err, reply) {
+        res.end(err ? err.message : JSON.stringify(reply));
+      });
+    });
+
+    app.get('/api/tags/tagDocument', function(req, res) {
+      var docId = req.query.docId, tagId = req.query.tagId;
+      tags.tagDocument(docId, tagId, function(err, reply) {
+        res.end(err ? err.message : JSON.stringify(reply));
+      });
+    });
 
     app.get('/createDocument', loggedIn, function(req, res) {
 
@@ -427,6 +456,5 @@ module.exports = {
     app.post('/api/docs/invite', function(req, res) {
       notifier.invite(req, res);
     });
-
   }
 }
