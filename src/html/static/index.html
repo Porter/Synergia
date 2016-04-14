@@ -241,8 +241,12 @@
 			eventData = fromServer;
 			resps = [];
 
-			for (var i = 0; i < fromServer.length; i++) {
-				var r = fromServer[i];
+			eventData = eventData['events'];
+
+			for (var i = 0; i < eventData.length; i++) {
+				var r = eventData[i];
+				console.log(r);
+
 
 				var keys = Object.keys(r['lastVisited']);
 				for (var n = 0; n < keys.length; n++) {
@@ -272,7 +276,7 @@
 					});
 				}
 			}
-
+			console.log(resps);
 			return resps;
 		}
 
@@ -315,7 +319,10 @@
 
 	    	$q.all([events, info]).then(function(results) {
 
+
 	    		results = results.map(function(r) { return r.data; });
+
+	    		console.log(results);
 
 	    		var info = results[1];
 	    		if (!info._id) {
@@ -377,8 +384,14 @@
 
 
 		function check(scope) {
+			console.log('checking');
 			$.getJSON('/aval', function(resp){ 
 				avalData = resp;
+
+				for (var i = 0; i < scope.myDocuments.length; i++) {
+					var doc = scope.myDocuments[i];
+					doc.userCount = 0;
+				}
 
 
 				for (var key in resp) {

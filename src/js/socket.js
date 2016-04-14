@@ -1,5 +1,5 @@
 
-var editCycle = 100;
+var cycleLen = 1000;
 
 function getBody(documentEl) {
   return documentEl.getElementsByTagName("body")[0];
@@ -11,6 +11,9 @@ function arrContains(arr, obj) {
   }
   return false;
 }
+
+var change = require('./change');
+var util = require('./../public/js/util');
 
 
 function changeCursor(documentId, user, cursor, socket, callback) {
@@ -29,7 +32,20 @@ var documents = {};
 module.exports = {
   getDocuments: function() { return documents; },
 
-  foo: function (io, passportSocketIo, secretKey, sessionStore, channels, changejs, jsdom, winston, mongo, db, secure_random, async, stats, notifier) {
+  foo: function (dependencies, stats, notifier) {
+
+    var io = dependencies.io;
+    var passportSocketIo = dependencies.passportSocketIo; 
+    var secretKey = dependencies.secretKey;
+    var sessionStore = dependencies.sessionStore;
+    var channels = dependencies.channels;
+    var changejs = dependencies.changejs;
+    var jsdom = dependencies.jsdom;
+    var winston = dependencies.winston;
+    var mongo = dependencies.mongo;
+    var db = dependencies.db;
+    var secure_random = dependencies.secure_random;
+    var async = dependencies.async;
 
     var BSON = mongo.ObjectID;
 
@@ -39,9 +55,9 @@ module.exports = {
       documentsCollection.update( 
         { _id : new BSON.ObjectID(id)},
          { '$set': {
-          struct: doc[0].documentElement.getElementsByTagName("body")[0].innerHTML,
-          val: doc[1], 
-          user: doc[3],
+          text: doc.text, 
+          colors: doc.colors,
+          users: doc.users,
           lastModified: new Date()
           }
         },
@@ -70,6 +86,38 @@ module.exports = {
         });
     }
 
+    function getUserLookup(colors, callback) {
+      console.log('getting userLookup');
+      console.log(JSON.stringify(colors));
+      var usersCollection = db.collection('g'), userLookup = {};
+
+      var usersInColors = {};
+      for (var i = 0; i < colors.length; i++) {
+        usersInColors[colors[i][1]] = 1;
+      }
+      console.log(JSON.stringify(usersInColors));
+
+      async.forEachOf(usersInColors, 
+        function(value, key, callback) {
+          console.log(key);
+
+          usersCollection.findOne({_id:BSON(key)}, {colors:1}, function(err, colors) {
+            if (!colors || !colors.colors) userLookup[key] = [{color:'black'}];
+            else userLookup[key] = colors;
+
+            callback(err, null);
+          });
+
+        },
+        function (err) {
+          if (err) console.error(err);
+
+          console.log('got userLookup', JSON.stringify(userLookup));
+          callback(err, userLookup);
+        }
+      );
+    }
+
 
 
     io.set("authorization", passportSocketIo.authorize({
@@ -77,11 +125,11 @@ module.exports = {
       secret:  secretKey,
       store:   sessionStore,     
       fail: function(data, message, error, accept) {
-  	console.log("data:   " + "");
-  	console.log("message: " + message);
-  	console.log("error:   " + JSON.stringify(error));
-    stats.error(error, "passportSocketIo auth");
-  	accept(null, true);
+      	console.log("data:   " + "");
+      	console.log("message: " + message);
+      	console.log("error:   " + JSON.stringify(error));
+        stats.error(error, "passportSocketIo auth");
+      	accept(null, true);
       },
       success: function(data, accept) {
           accept(null, true);
@@ -92,6 +140,8 @@ module.exports = {
     var connected = 0;
 
     io.on('connection', function(socket){
+
+      var document;
 
 
       if (typeof(socket.request.user) != "string") { // user isn't logged in
@@ -111,30 +161,24 @@ module.exports = {
           if (documents[socket.doc]) {
             var doc = documents[socket.doc];
 
-            var users = doc[2];
-
+            var users = doc.users;
+            console.log(JSON.stringify(users));
             var user = users[socket.request.user];
 
             if (user['x'] <= 1) {
               delete users[socket.request.user];
 
-              if (socket.docEdited) {
-                updateUser("edited", socket.doc, doc[5], socket.request.user);
-              }
+              if (socket.docEdited) { updateUser("edited", socket.doc, doc[5], socket.request.user); }
               else {
-                if (socket.isNewDocument) {
-                  updateUser("created", socket.doc, doc[5], socket.request.user);
-                }
-                else {
-                  updateUser("viewed", socket.doc, doc[5], socket.request.user);
-                }
+                if (socket.isNewDocument) { updateUser("created", socket.doc, doc[5], socket.request.user); }
+                else { updateUser("viewed", socket.doc, doc[5], socket.request.user); }
               }
-
-
             }
             else {
               user['x']--;
             }
+
+            console.log(JSON.stringify(users));
 
             if (Object.keys(users).length == 0) {
               saveDocument(db, socket.doc, doc);
@@ -151,63 +195,35 @@ module.exports = {
 
       });
 
-      socket.on('updateRecieved', function (msg) { confirm(socket, msg)} );
-      
-
-      socket.on('inp', function(msg) {
-        //console.log("got msg" + msg + " from user " + socket.request.user);
-        if (socket.doc) {
-          var doc = socket.doc;
-          documentChanger.emit(doc, [socket, {msg:msg, documentId:doc}]);
-        }
-      });
-
-      socket.on('inp_cur', function(msg) {
-        msg = JSON.parse(msg);
-        if (socket.doc) {
-          var doc = socket.doc;
-          //console.log("got msg" + msg[0] + " from user " + socket.request.user);
-          documentChanger.emit(doc, [socket, {msg:msg[0], documentId:doc, cursor:msg[1]}]);
-        }
-      });
-
       socket.on('cur', function(msg) {
         msg = JSON.parse(msg);
         if (socket.doc) {
           var doc = socket.doc;
-          documentChanger.emit(doc, [socket, {cursor:msg, documentId:doc}]);
         }
       });
 
       socket.on('visibilitychange', function(msg) {
 
+        return;
+
         var doc = documents[socket.doc];
 
-        if (!doc || !doc[2][socket.request.user]) {
+        if (!doc || !doc.users[socket.request.user]) {
           console.log("visibilitychanged, but either the doc or the user isn't initialized".red);
         }
 
-        var user = doc[2][socket.request.user];
+        var user = doc.users[socket.request.user];
 
         user['visibility'] = msg;
 
         socket.broadcast.to(socket.doc).emit('users', [socket.request.user, user]);
       });
 
-
-      socket.on('LengthMismatch', function(d) {
-        documentChanger.emit(socket.doc, [socket, {
-          customFunc:function() {
-            console.log("fixing " + documents[socket.doc][1] + " to " + d);
-            documents[socket.doc][1] = d;
-          }}]
-        );
-      });
-
-
       socket.on('init', function(msg){
         socket.join(msg);
         var u = socket.handshake.headers.referer;
+
+        var user = socket.request.user;
 
         socket.isGhost = u.indexOf('/np?') > -1;
         console.log(socket.isGhost);
@@ -215,7 +231,186 @@ module.exports = {
         socket.doc = msg;
         socket.joinedDoc = new Date();
 
-        initer.emit(msg, [socket, msg]);
+        var document = documents[msg];
+        if (document) {
+          if (document.users[user]) {
+            document.users[user].x++;
+          }
+          else {
+            document.users[user] = {x:1, visibility:true};
+          }
+
+          var userCollection = db.collection('g');
+          userCollection.findOne({_id:BSON(user)}, {colors:1}, function(err, colors) {
+            document.userLookup[user] = colors;
+
+            io.to(msg).emit('newUserJoined', {user: colors})
+            socket.emit('init', {userId:user, doc:document});
+          });
+
+        }
+        else {
+          async.waterfall(
+          [
+            function (callback) {
+              var documentsCollection = db.collection('documents');
+              documentsCollection.findOne({_id:BSON(msg)}, callback);
+            },
+            function (reply, callback) {
+              var userCollection = db.collection('g');
+              userCollection.findOne({_id:BSON(user)}, {colors:1}, function(err, colors) {
+                callback(err, reply, colors);
+              });
+            },
+            function(reply, userColors, callback) {
+              getUserLookup(reply.colors || [], function(err, userLookup) {
+                callback(err, reply, userColors, userLookup);
+              });
+            },
+            function (reply, userColors, userLookup, callback) {
+              document = reply;
+              if (document) {
+
+                // init the document
+                document.users = {};
+                document.users[user] = {x:1, visibility:true}
+
+                document.cursor = {};
+                document.userLookup = userLookup;
+                document.userLookup[user] = userColors;
+
+                document.number = 0;
+                document.edits = {};
+
+                callback(null, document);
+              }
+              else {
+                callback(new Error("document for " + msg + " is null"), null);
+              }
+            }
+          ],
+          function(err, document) {
+            if (err) console.log(err);
+            else {
+              documents[msg] = document;
+              socket.emit('init', {userId:socket.request.user, doc:documents[msg]});
+            }
+
+
+          });
+        }
+      });
+
+      function findClientsSocket(roomId, namespace) {
+        var res = [], ns = io.of(namespace ||"/");    // the default namespace is "/"
+
+        if (ns) {
+          for (var id in ns.connected) {
+              if(roomId) {
+                  var index = ns.connected[id].rooms.indexOf(roomId) ;
+                  if(index !== -1) {
+                      res.push(ns.connected[id]);
+                  }
+              } else {
+                res.push(ns.connected[id]);
+            }
+          }
+        }
+        return res;
+      }
+
+
+      function cleanUpEdits(clients, edits) {
+        var clients = findClientsSocket();
+        
+        if (clients.length == 0) {
+          edits = {};
+          return;
+        }
+
+        var lowest = clients[0].lastEdit;
+        if (lowest == undefined) return;
+
+        for (var i = 1; i < clients.length; i++) {
+
+          var differenceForward = clients[i].lastEdit - lowest;
+          var differenceBackward = -differenceForward;
+
+          while (differenceForward < 0) differenceForward += cycleLen/2;
+          while (differenceBackward < 0) differenceBackward += cycleLen/2;
+
+          if (differenceForward > differenceBackward) {
+            lowest = clients[i].lastEdit;
+          }
+        }
+
+        var r = lowest;
+
+        for (var i = 0; i < cycleLen/2; i++) {
+          lowest--;
+          if (lowest < 0) lowest += cycleLen;
+
+          edits[lowest] = undefined;
+        }
+
+        return ((r-1) + cycleLen) % cycleLen;
+
+      }
+
+      socket.on('input', function(input) {
+        var c = input['change'];
+        var n = input['number'];
+
+        var edit = change.stringToEditPath(c);
+        var user = socket.request.user;
+        
+        var document = documents[socket.doc];
+
+        var number = document.number;
+        var edits = document.edits;
+        var text = document.text || "";
+
+        var colors = document.colors || [];
+        document.colors = colors;
+
+        //console.log(n + ", " + number + ": " + text);
+        console.log("got edit", n, "at", number, JSON.stringify(edit));
+
+        var originalEdit = util.copyEdit(edit);
+
+        if (n != number) {
+          for (var i = n; i != number; i = (i+1)%cycleLen) {
+            util.applyOffsets(edit, edits[i]);
+            console.log('applying', JSON.stringify(edits[i]));
+            console.log('new edit', JSON.stringify(edit));
+          }
+        }
+
+        var offsetDepth = Math.abs(number - n);
+        if (offsetDepth > cycleLen/2) offsetDepth = cycleLen - offsetDepth;
+
+        
+        console.log(text + " -> " + change.applyEditPath(text, edit));
+        text = change.applyEditPath(text, edit);
+        change.applyEditPathToColors(colors, edit, user);
+
+        edits[number] = originalEdit;
+        var lowest = cleanUpEdits(null, edits);
+        console.log('lowest: ' + lowest);
+
+        number = (number + 1) % cycleLen;
+
+        var hash = change.hashString(text);
+
+        io.in(socket.doc).emit('editConfirmed', {user:user, number:number, offsetDepth:offsetDepth, edit:originalEdit, hash:hash, text:text, lowest:lowest});
+
+        document.number = number;
+        document.text = text;
+      });
+
+      socket.on('editConfirmationRecieved', function(data) {
+        socket.lastEdit = data.number;
+        cleanUpEdits(null, documents[socket.doc].edits);
       });
 
       socket.on('rename', function (msg) {
@@ -266,358 +461,5 @@ module.exports = {
       });
 
     }); // socket on connection
-
-    function init(msg, channelsCallback) {
-      console.log('initing ' + msg[0].request.user);
-      var socket = msg[0];
-      var documentId = msg[1];
-
-      if (!socket.request.user) {
-        socket.emit('init', '{}');
-        channelsCallback();
-        return;
-      }
-
-      async.series([
-
-        function(callback) {
-
-
-          if (!documents[documentId]) { // if it's not loaded 
-            
-            var collection = db.collection('documents');
-            collection.findOne( { _id:new BSON.ObjectID(documentId) }, function(err, doc) { // load it from mongodb
-
-              if (err) {
-                stats.error(err, "finding a document", documentId);
-                callback(err);
-                return;
-              }
-              
-
-              var structure, text, users, userColors;
-              if (doc) {
-                console.log("loaded doc for first time");
-                var structure = jsdom.jsdom(doc.struct);
-                var text = doc.val;
-                var currentUsers = {};
-                var name = doc.name;
-                var id = doc._id;
-                var userColors = doc.user;
-
-
-                var edits = {edits:[], start:0};
-
-                var keys = Object.keys(userColors);
-                socket.isNewDocument = keys.length == 0;
-
-                keys = keys.map(function (key) { return new BSON.ObjectID(key); });
-
-                keys.push(new BSON.ObjectID(socket.request.user));
-
-                var userCollection = db.collection('g');
-                userCollection.find({_id : {'$in': keys}}, {_id:1, displayName:1, user:1}).toArray(function (e, replies) {
-
-                  var userLookup = {};
-
-                  for (var i = 0; i<replies.length; i++) { 
-                    var reply = replies[i];
-
-                    if (reply['user'] && reply['user'].indexOf(':') != -1) { reply['user'] = reply['user'].substring(3); }
-
-                    userLookup[reply['_id']] = {'displayName':reply['displayName'], 'user':reply['user']}
-                  }
-
-                  console.log('initial userLookup is :' + JSON.stringify(userLookup));
-
-                  var doc = [structure, text, currentUsers, userColors, {}, name, id, userLookup, edits];
-                  documents[documentId] = doc;
-
-                  callback();
-                });
-
-
-              }
-              else {
-                var e = new Error("document " + documentId + " doesn't exist");
-                stats.error(e, "document doesn't exist", documentId)
-                callback(e);
-                return;
-              }
-              
-              
-
-            }); 
-          }
-          else {
-            var doc = documents[documentId];
-
-            if ( !doc[7][socket.request.user] ) {
-              console.log(socket.request.user + " doesn't exist in userLookup");
-              var userCollection = db.collection('g');
-              userCollection.findOne( {_id: BSON.ObjectID(socket.request.user) }, {_id:1, displayName:1, user:1}, function(e, reply) {
-
-                if (e) { 
-                  console.log(("couldn't find " + socket.request.user).red); 
-                  stats.error(e, "getting user", socket.request.user); 
-                  callback(e);
-                  return;
-                }
-
-                if (!reply) {
-                  console.log(("couldn't find " + socket.request.user).red); 
-                }
-
-                reply['_id'] = reply['_id'].toString();
-                if (reply['user'] && reply['user'].indexOf(':') != -1) { reply['user'] = reply['user'].substring(3); }
-
-                console.log("setting " + socket.request.user + " to " + JSON.stringify(reply));
-                doc[7][socket.request.user] = reply;
-
-                var msg = {}
-                msg[reply['_id']] = {'displayName':reply['displayName'], 'user':reply['user']};
-
-                socket.broadcast.to(documentId).emit('NewUserJoined', msg);
-
-                callback();
-
-              });
-            }
-            else { console.log(socket.request.user + " already exists in userLookup: " + JSON.stringify(doc[7][socket.request.user])); callback(); }
-          }
-        }],
-
-        function (err, replies) {
-
-          if (err) {
-            stats.error(err, "initing");
-            socket.emit('init', err.toString());
-
-            channelsCallback();
-            return;
-          }
-
-          var doc = documents[documentId];
-          
-          var color = '';
-          if (!socket.isGhost) {
-
-            var userColors = doc[3];
-            if (userColors[socket.request.user]) {
-              var u = socket.request.user;
-              color = 'u' + userColors[u]['color'];
-            }
-            else {
-              var len = Object.keys(userColors).length;
-              color = 'u' + len;
-
-              userColors[socket.request.user] = {color : len};
-
-            }
-
-
-            var userInfo = doc[2][socket.request.user];
-            if (!userInfo) {
-              uc = {color: color, lastConfirmedEdit:-1, x:1, joined: new Date(), visibility: true};
-              // color of color, only logged in from one browser/tab, joined now, is active
-              
-              doc[2][socket.request.user] = uc;
-            } 
-            else {
-              userInfo['x']++;
-            }
-          }
-
-          var d= {};
-          d["struct"] = doc[0].documentElement.getElementsByTagName("body")[0].innerHTML;
-          d["text"] = doc[1];
-          
-          if (!socket.isGhost) {
-            d["color"] = color;
-            d["colorId"] = doc[3][socket.request.user].color;
-          }
-
-          d["cursor"] = doc[4];
-          d["currentUsers"] = doc[2];
-          d["title"] = doc[5];
-          d["userLookup"] = doc[7];
-          d["start"] = doc[8]['start'];
-
-          d["userId"] = socket.request.user;
-
-          if (!socket.isGhost) {
-            socket.broadcast.to(documentId).emit('users', [socket.request.user, doc[2][socket.request.user]] );
-
-            saveDocument(db, documentId, documents[documentId], null);
-          }
-          socket.emit('init', JSON.stringify(d) );
-          
-
-          
-          console.log('done initing ' + msg[0].request.user);
-          channelsCallback();
-        }
-      );
-    }
-
-    function smallestEdit(arr) {
-      if (arr.length == 0) return;
-      var high = arr[0], low = arr[0];
-      for (var i = 1; i < arr.length; i++) {
-
-        var p = arr[i];
-
-        if (p > high) high = p;
-        if (p < low) low = p;
-      }
-
-      if (low == -1) return low;
-      if (high - low > editCycle/2) { return high; }
-      else { return low; }
-    }
-
-
-    function confirm(socket, msg) {
-      if (socket.isGhost) return;
-
-
-      var doc = documents[socket.doc];
-
-      var usersOnDoc = Object.keys(doc[2]);
-      var poses = {};
-      for (var i = 0; i < usersOnDoc.length; i++) {
-        poses[usersOnDoc[i]] = doc[2][usersOnDoc[i]]['lastConfirmedEdit'];
-      }
-
-
-      doc[2][socket.request.user]['lastConfirmedEdit'] = msg[1];
-
-      var jk = usersOnDoc.map(function(user) { return doc[2][user]['lastConfirmedEdit']; });
-      var smallest = smallestEdit(jk);
-
-
-      var diff = doc[8]['start'] - smallest;
-      if (smallest == -1) diff = doc[8]['edits'].length; // if smallest is -1, that means there is some user that hasn't confirmed any edits yet
-
-
-      if (diff < 0) diff += editCycle;
-
-
-      if (diff >= 0) {
-        while (doc[8]['edits'].length > diff) {
-          doc[8]['edits'].shift();
-        }
-      }
-      else {
-        notifier.sendEmail('pmh192@gmail.com', 'diff is less than 0', ""+diff);
-      }
-
-    }
-
-    function changeDocument(msg, callback) {
-
-      var socket = msg[0];
-      if (socket.isGhost) {
-        callback();
-        return;
-      }
-
-      msg = msg[1];
-
-      if (msg['customFunc']) {
-        msg['customFunc']();
-        callback();
-        return;
-      }
-
-      var user = socket.request.user;
-      var documentId = msg['documentId'];
-      var cursorChange = msg['cursor'];
-      msg = msg['msg'];
-
-      if (typeof(user) != "string" || !documents[documentId]) { // user isn't logged in or document isn't inited
-        if (typeof(user) != "string") console.log("user isn't logged in");
-        if (!documents[documentId]) console.log("documents doesn't have key " + documentId);
-        callback();
-        return;
-      }
-
-      if (!msg) {
-        changeCursor(documentId, user, cursorChange, socket, callback);
-        return;
-      }
-
-      var changes = JSON.parse(msg);
-
-      if (changes[1].length != 1) {
-        socket.docEdited = true;
-      }
-
-      var doc = documents[documentId];
-
-
-      var col = '#ff00ff';//colors[ doc[3][socket.request.user]['color']%colors.length ];
-      changejs.setDocument(doc[0].parentWindow.window.document);
-      //changejs.setColor(col);
-
-      var serverStart = doc[8]['start'], clientStart = changes[2];
-      if (serverStart != clientStart) {
-        console.log("server: " + serverStart + "; client: " + clientStart);
-
-        var diff = serverStart - clientStart;
-        if (diff < 0) diff += editCycle;
-
-        var edits = doc[8]['edits'];
-        if (diff > edits.length) {
-          console.log("we don't have enough stored edits".red);
-          console.log(doc[8]['edits']);
-          console.log(diff);
-        }
-        else {
-          console.log(edits);
-          msg = JSON.parse(msg);
-          for (var i = edits.length - diff; i < edits.length; i++) {
-            console.log("applying edit", edits[i][1]);
-            changejs.applyOffsets(edits[i][1], changes[1]);
-          }
-          msg[1] = changes[1];
-          msg = JSON.stringify(msg);
-        }
-      }
-
-      doc[8]['start'] = (doc[8]['start']+1)%editCycle;
-      doc[8]['edits'].push(changes);
-
-      var oldText = doc[1];
-      doc[1] = changejs.applyTextChanges(doc[1], changes[1]);
-
-      var colId = "u" + doc[3][socket.request.user].color;
-
-      changejs.applyTextChangesToStructure(doc[0].parentWindow.window.document.getElementById('testArea'), oldText, changes[1], col, colId, doc[1]);
-      changejs.form2(doc[0].parentWindow.window.document.getElementById('testArea'), col, colId, true);
-      changejs.form(doc[0].parentWindow.window.document.getElementById('testArea'));
-
-
-      //console.log("applying " + JSON.stringify(changes[1]) + " to " + documents[documentId][1]);
-      
-      //console.log("gets us: " + documents[documentId][1]);
-
-      var outerHTML = doc[0].parentWindow.window.document.getElementById('testArea').outerHTML;
-      var thing = [msg, outerHTML, doc[1], doc[8]['start'], col, colId ];
-
-      socket.emit('resp', JSON.stringify(thing), function (msg) { confirm(socket, msg)} );
-      socket.broadcast.to(socket.doc).emit('update', JSON.stringify(thing));
-
-      saveDocument(db, documentId, documents[documentId], null);
-
-      
-      if (cursorChange) { changeCursor(documentId, user, cursorChange, socket, callback); return; }
-      else callback();
-    }
-
-
-    var documentChanger = new channels.channels(changeDocument);
-
-    var initer = new channels.channels(init);
   }
 }

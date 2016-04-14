@@ -1,0 +1,223 @@
+body {
+	background: rgb(15,4,87);
+}
+	
+.title {
+	font-size: 24px;
+	font-family:"Courier";
+	font-weight: bold;
+	padding-bottom: none;
+	color:white;
+}
+
+#leftBar {
+	width:50%;
+	margin-left:25%;
+	margin-top: 25vh;
+	height: 60vh;
+	background-color: rgb(255, 255, 255);
+	border-radius: 15px;
+	border:3px dotted rgb(51, 133, 51);
+	font-family: "Courier";
+	font-size: 15px;
+	font-weight: bold;
+	text-align: center;
+	position: relative;
+}
+
+#leftBar > ul {
+	list-style-type: none;
+	margin-top: 20px;
+	padding-left:0;
+}
+
+#main {
+	height: 85vh;
+	
+}
+#mainContent {
+	position: fixed;
+	top: 0;
+	left: 0;
+	padding: 0;
+	height: 100px;
+	width: 0px;
+	overflow-y: hidden;
+	outline: none;
+	font-size: 24px;
+	background-color: #fff;
+	nothing: rgb(255, 246, 211);
+	border-radius: 0px;
+	border: none;
+	resize: none;
+}
+
+#testArea {
+	background-color:rgb(255, 255, 255);
+	height: 100vh;
+	z-index: -1;
+	font-size: 18px;
+	font-family: "Courier";
+	padding-left: 20px;
+	padding-top: 15px;
+	border: 4px solid rgb(51, 133, 51);
+	border-radius:20px;
+	margin-top:2vh;
+	overflow: scroll;
+}
+
+
+
+#people li{
+	display: inline;
+}
+
+.row {
+	width:100%;
+}
+
+#rightBar {
+	position: fixed;
+	top: 30vh;
+	right: 0;
+	height: 30vh;
+	width: 20%;
+	background-color: rgb(245, 193, 124);
+}
+
+
+#middleBar {
+	position: fixed;
+	top: 30vh;
+	right: 0;
+	height: 30vh;
+	width: 25%;
+	background-color: rgb(150, 108, 67);
+}
+
+#middleBar *,  #middleBarBack *{
+	position: relative;
+	top: .3vh;
+	padding-right: 15px;
+	font-size: 18px;
+	font-family: Tahoma;
+	color: rgb(255, 204, 153);
+	height: 25%;
+	text-align: right;	
+	border: none;
+}
+
+#middleBarBack {
+	position: fixed;
+	top: 35vh;
+	right: 0;
+	height: 30vh;
+	width: 100%;
+	z-index: -1;
+}
+
+#status{
+	text-align: right;
+	padding-right: 4em;
+	padding-top: 15px;
+	font-size: 18px;
+	font-family: Tahoma;
+	color: rgb(25, 89, 25);
+}
+
+.kix-cursor {
+  cursor: text;
+  position: absolute;
+  z-index: 24;
+}
+
+
+.kix-cursor-caret {
+  position: absolute;
+  width: 0px;
+  border-left: 2px solid;
+  font-size: 0;
+}
+
+.kix-cursor-top {
+  position: absolute;
+  width: 6px;
+  left: -2px;
+  top: -2px;
+  height: 6px;
+  font-size: 0;
+}
+
+
+.kix-cursor-name {
+  position: absolute;
+  font-size: 10px;
+  color: #fff;
+  top: -14px;
+  left: -2px;
+  padding: 2px;
+  white-space: nowrap;
+}
+
+#main {
+	position: relative;
+}
+
+#customEmails {
+	position: absolute;
+	bottom: 10px;
+}
+
+#customEmails > ul {
+	padding: 0;
+}
+
+#customEmails > ul > li{
+	list-style-type: none;
+}
+
+.wrapword{
+	white-space: -moz-pre-wrap !important;  /* Mozilla, since 1999 */
+	white-space: -pre-wrap;      /* Opera 4-6 */
+	white-space: -o-pre-wrap;    /* Opera 7 */
+	white-space: pre-wrap;       /* css-3 */
+	word-wrap: break-word;       /* Internet Explorer 5.5+ */
+	white-space: -webkit-pre-wrap; /* Newer versions of Chrome/Safari*/
+	word-break: break-all;
+	white-space: normal;
+
+}
+
+.addEmailInput {
+    -webkit-transition:all linear 0.5s;
+    transition:all linear 0.5s;
+    background: transparent;
+  }
+.addEmailInputInvalid {
+	-webkit-transition:all linear 0.5s;
+    transition:all linear 0.5s;
+	color:white;
+	background: red;
+}
+
+[ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {
+  display: none !important;
+}
+
+li {
+	list-style-type: none;
+}
+
+.fontPicker {
+	position: fixed;
+	background-color: white;
+	left: 100px;
+	top: -35px;
+	width: 70%;
+	border: solid 1px;
+	display: none;
+}
+
+.choosenFont {
+	width: 70%;
+}

@@ -1,5 +1,8 @@
 module.exports = {
-  foo: function (app, pg) {
+  foo: function (dependencies) {
+    var app = dependencies.app;
+    var pg = dependencies.pg;
+
    var conString = "postgres://porter@localhost/connectivity_development";
 
    app.get('/test', function(req, res) {

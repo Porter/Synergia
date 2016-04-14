@@ -20,10 +20,15 @@ function loggedIn(req, res, next) {
 
 
 module.exports = {
-  foo: function (app, channels, DB, secure_random, async_, swig, BSON, mySocket, notifier) {
+  foo: function (dependencies, mySocket, notifier) {
 
-    db = DB;
-    async = async_;
+    var app = dependencies.app;
+    var channels = dependencies.channels;
+    var db = dependencies.db;
+    var secure_random = dependencies.secure_random;
+    var async = dependencies.async;
+    var swig = dependencies.swig;
+    var BSON = dependencies.BSON;
 
     var tags = require('./tags');
     tags.init(db, async);
@@ -317,7 +322,7 @@ module.exports = {
 
         usrs.find({'$and': [ {_id:{'$in':users}}, {lastVisited:{'$exists':true}} ]}, {user:1, email: 1, lastVisited:1}).toArray(function (err, replies) {
 
-          callback(replies);
+          callback(null, replies);
 
           /*var docs = [];
           for (var i = 0; i < replies.length; i++) {
@@ -394,7 +399,8 @@ module.exports = {
 
 
     app.get('/f', function(req, res) {
-      getEvents(req, function(results) { res.end(JSON.stringify(results)); } );
+      res.setHeader('content-type', 'text/json');
+      getEvents(req, function(err, results) { res.end(JSON.stringify({events:results})); } );
     });
 
     app.get('/aval', function(req, res) {
@@ -402,12 +408,13 @@ module.exports = {
 
       var users = {};
       for (key in documents) {
-        var usersOnDoc = Object.keys(documents[key][2]);
+        var usersOnDoc = Object.keys(documents[key].users);
         if (usersOnDoc.length != 0) {
           users[key] = usersOnDoc;
         }
       }
 
+      res.setHeader('content-type', 'application/json');
       res.end(JSON.stringify(users));
     });
 

@@ -17,11 +17,12 @@ function inArr(el, arr) {
 
 module.exports = {
 
-  init: function(email_info, rand, database, app, production) { 
-    isProduction = production;
-    emailInfo = email_info;
-    random = rand;
-    db = database;
+  init: function(dependencies) { 
+    isProduction = dependencies.inProduction;
+    emailInfo = dependencies.email;
+    random = dependencies.secure_random;
+    db = dependencies.db;
+    app = dependencies.app;
 
     transporter = nodemailer.createTransport({
         service: 'Gmail',

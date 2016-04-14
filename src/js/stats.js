@@ -2,10 +2,10 @@ var emailInfo, db;
 
 module.exports = {
 
-  init: function (email_info, DB) {
+  init: function (dependencies) {
 
-    emailInfo = email_info;
-    db = DB;
+    emailInfo = dependencies.email;
+    db = dependencies.db;
 
     var nodemailer = require('nodemailer');
 

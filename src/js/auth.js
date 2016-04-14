@@ -4,7 +4,12 @@ var bcrypt = require('bcrypt-nodejs');
 
 
 module.exports = {
-  foo: function (app, passport, LocalStrategy, db, secure_random, notifier, production) {
+  foo: function (dependencies, notifier) {
+
+    var db = dependencies.db;
+    var passport = dependencies.passport;
+    var LocalStrategy = dependencies.LocalStrategy;
+    var production = dependencies.inProduction;
 
 
     var collection = db.collection('g');
