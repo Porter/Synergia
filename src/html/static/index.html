@@ -218,7 +218,7 @@
 				<hr/>
 
 				<ul class="list" ng-repeat="doc in otherDocuments">
-				<li class="stylish"><a href="/docs/view?doc={{ doc._id.toString() }}&title={{ doc.name }}"> {{ doc.name }} </a><span id='{{doc._id.toString()}}'></span></li>
+				<li class="stylish"><a href="/docs/view?doc={{ doc._id.toString() }}&title={{ doc.name }}"> {{ doc.name }} {{ amountOfUsers(doc) }} </a><span id='{{doc._id.toString()}}'></span></li>
 				</ul>
 
 
@@ -245,8 +245,6 @@
 
 			for (var i = 0; i < eventData.length; i++) {
 				var r = eventData[i];
-				console.log(r);
-
 
 				var keys = Object.keys(r['lastVisited']);
 				for (var n = 0; n < keys.length; n++) {
@@ -263,7 +261,6 @@
 					if (time.getHours() == 0 && time.getMinutes == 0) clockTime = "midnight"; 
 
 
-					console.log(r);
 					resps.push( {
 						_id: r._id,
 						user: r.user,
@@ -276,7 +273,6 @@
 					});
 				}
 			}
-			console.log(resps);
 			return resps;
 		}
 
@@ -321,8 +317,6 @@
 
 
 	    		results = results.map(function(r) { return r.data; });
-
-	    		console.log(results);
 
 	    		var info = results[1];
 	    		if (!info._id) {
@@ -384,7 +378,6 @@
 
 
 		function check(scope) {
-			console.log('checking');
 			$.getJSON('/aval', function(resp){ 
 				avalData = resp;
 
@@ -410,6 +403,7 @@
 						}
 					}
 				}
+
 				scope.$apply();
 			});
 		}
